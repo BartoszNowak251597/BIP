@@ -38,7 +38,8 @@ class MainActivity : ComponentActivity() {
 
 enum class Screen {
     Dashboard,
-    Settings
+    Settings,
+    Bluetooth
 }
 
 @Composable
@@ -54,6 +55,9 @@ fun VisionCoreApp() {
                     modifier = Modifier.padding(innerPadding),
                     onSettingsClick = {
                         currentScreen = Screen.Settings
+                    },
+                    onBluetoothClick = {
+                        currentScreen = Screen.Bluetooth
                     }
                 )
             }
@@ -70,6 +74,19 @@ fun VisionCoreApp() {
                     }
                 )
             }
+
+            Screen.Bluetooth -> {
+                BackHandler {
+                    currentScreen = Screen.Dashboard
+                }
+
+                BluetoothScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    onBackClick = {
+                        currentScreen = Screen.Dashboard
+                    }
+                )
+            }
         }
     }
 }
@@ -77,7 +94,8 @@ fun VisionCoreApp() {
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onBluetoothClick: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -108,7 +126,7 @@ fun DashboardScreen(
             Text(text = "Settings")
         }
 
-        Button(onClick = {}) {
+        Button(onClick = onBluetoothClick) {
             Text(text = "Bluetooth")
         }
     }
@@ -137,11 +155,58 @@ fun SettingsScreen(
     }
 }
 
+@Composable
+fun BluetoothScreen(
+    modifier: Modifier = Modifier,
+    onBackClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Bluetooth")
+
+        Button(
+            onClick = {},
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(text = "Scan for devices")
+        }
+
+        Button(
+            onClick = {},
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(text = "Connect")
+        }
+
+        Button(
+            onClick = {},
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(text = "Disconnect")
+        }
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(text = "Back")
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun DashboardScreenPreview() {
     VisionCoreTheme {
-        DashboardScreen(onSettingsClick = {})
+        DashboardScreen(
+            onSettingsClick = {},
+            onBluetoothClick = {}
+        )
     }
 }
 
@@ -150,5 +215,13 @@ fun DashboardScreenPreview() {
 fun SettingsScreenPreview() {
     VisionCoreTheme {
         SettingsScreen(onBackClick = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun BluetoothScreenPreview() {
+    VisionCoreTheme {
+        BluetoothScreen(onBackClick = {})
     }
 }
