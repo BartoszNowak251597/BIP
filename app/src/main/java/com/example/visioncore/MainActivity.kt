@@ -37,20 +37,20 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class Screen {
-    Home,
+    Dashboard,
     Settings
 }
 
 @Composable
 fun VisionCoreApp() {
-    var currentScreen by remember { mutableStateOf(Screen.Home) }
+    var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         when (currentScreen) {
-            Screen.Home -> {
-                HomeScreen(
+            Screen.Dashboard -> {
+                DashboardScreen(
                     modifier = Modifier.padding(innerPadding),
                     onSettingsClick = {
                         currentScreen = Screen.Settings
@@ -60,13 +60,13 @@ fun VisionCoreApp() {
 
             Screen.Settings -> {
                 BackHandler {
-                    currentScreen = Screen.Home
+                    currentScreen = Screen.Dashboard
                 }
 
                 SettingsScreen(
                     modifier = Modifier.padding(innerPadding),
                     onBackClick = {
-                        currentScreen = Screen.Home
+                        currentScreen = Screen.Dashboard
                     }
                 )
             }
@@ -75,7 +75,7 @@ fun VisionCoreApp() {
 }
 
 @Composable
-fun HomeScreen(
+fun DashboardScreen(
     modifier: Modifier = Modifier,
     onSettingsClick: () -> Unit
 ) {
@@ -83,16 +83,33 @@ fun HomeScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Home")
+        Text(text = "Dashboard")
 
-        Button(
-            onClick = onSettingsClick,
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
+        Button(onClick = {}) {
+            Text(text = "Manual override")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Profiles")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Prescription")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Device & power")
+        }
+
+        Button(onClick = onSettingsClick) {
             Text(text = "Settings")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Bluetooth")
         }
     }
 }
@@ -122,9 +139,9 @@ fun SettingsScreen(
 
 @Preview(showBackground = true)
 @Composable
-fun HomeScreenPreview() {
+fun DashboardScreenPreview() {
     VisionCoreTheme {
-        HomeScreen(onSettingsClick = {})
+        DashboardScreen(onSettingsClick = {})
     }
 }
 
