@@ -39,7 +39,11 @@ class MainActivity : ComponentActivity() {
 enum class Screen {
     Dashboard,
     Settings,
-    Bluetooth
+    Bluetooth,
+    ManualOverride,
+    Profiles,
+    Prescription,
+    DevicePower
 }
 
 @Composable
@@ -53,6 +57,18 @@ fun VisionCoreApp() {
             Screen.Dashboard -> {
                 DashboardScreen(
                     modifier = Modifier.padding(innerPadding),
+                    onManualOverrideClick = {
+                        currentScreen = Screen.ManualOverride
+                    },
+                    onProfilesClick = {
+                        currentScreen = Screen.Profiles
+                    },
+                    onPrescriptionClick = {
+                        currentScreen = Screen.Prescription
+                    },
+                    onDevicePowerClick = {
+                        currentScreen = Screen.DevicePower
+                    },
                     onSettingsClick = {
                         currentScreen = Screen.Settings
                     },
@@ -87,6 +103,58 @@ fun VisionCoreApp() {
                     }
                 )
             }
+
+            Screen.ManualOverride -> {
+                BackHandler {
+                    currentScreen = Screen.Dashboard
+                }
+
+                ManualOverrideScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    onBackClick = {
+                        currentScreen = Screen.Dashboard
+                    }
+                )
+            }
+
+            Screen.Profiles -> {
+                BackHandler {
+                    currentScreen = Screen.Dashboard
+                }
+
+                ProfilesScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    onBackClick = {
+                        currentScreen = Screen.Dashboard
+                    }
+                )
+            }
+
+            Screen.Prescription -> {
+                BackHandler {
+                    currentScreen = Screen.Dashboard
+                }
+
+                PrescriptionScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    onBackClick = {
+                        currentScreen = Screen.Dashboard
+                    }
+                )
+            }
+
+            Screen.DevicePower -> {
+                BackHandler {
+                    currentScreen = Screen.Dashboard
+                }
+
+                DevicePowerScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    onBackClick = {
+                        currentScreen = Screen.Dashboard
+                    }
+                )
+            }
         }
     }
 }
@@ -94,6 +162,10 @@ fun VisionCoreApp() {
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
+    onManualOverrideClick: () -> Unit,
+    onProfilesClick: () -> Unit,
+    onPrescriptionClick: () -> Unit,
+    onDevicePowerClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onBluetoothClick: () -> Unit
 ) {
@@ -106,19 +178,19 @@ fun DashboardScreen(
     ) {
         Text(text = "Dashboard")
 
-        Button(onClick = {}) {
+        Button(onClick = onManualOverrideClick) {
             Text(text = "Manual override")
         }
 
-        Button(onClick = {}) {
+        Button(onClick = onProfilesClick) {
             Text(text = "Profiles")
         }
 
-        Button(onClick = {}) {
+        Button(onClick = onPrescriptionClick) {
             Text(text = "Prescription")
         }
 
-        Button(onClick = {}) {
+        Button(onClick = onDevicePowerClick) {
             Text(text = "Device & power")
         }
 
@@ -137,22 +209,11 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Settings")
-
-        Button(
-            onClick = onBackClick,
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            Text(text = "Back")
-        }
-    }
+    PlaceholderScreen(
+        modifier = modifier,
+        title = "Settings",
+        onBackClick = onBackClick
+    )
 }
 
 @Composable
@@ -199,11 +260,87 @@ fun BluetoothScreen(
     }
 }
 
+@Composable
+fun ManualOverrideScreen(
+    modifier: Modifier = Modifier,
+    onBackClick: () -> Unit
+) {
+    PlaceholderScreen(
+        modifier = modifier,
+        title = "Manual override",
+        onBackClick = onBackClick
+    )
+}
+
+@Composable
+fun ProfilesScreen(
+    modifier: Modifier = Modifier,
+    onBackClick: () -> Unit
+) {
+    PlaceholderScreen(
+        modifier = modifier,
+        title = "Profiles",
+        onBackClick = onBackClick
+    )
+}
+
+@Composable
+fun PrescriptionScreen(
+    modifier: Modifier = Modifier,
+    onBackClick: () -> Unit
+) {
+    PlaceholderScreen(
+        modifier = modifier,
+        title = "Prescription",
+        onBackClick = onBackClick
+    )
+}
+
+@Composable
+fun DevicePowerScreen(
+    modifier: Modifier = Modifier,
+    onBackClick: () -> Unit
+) {
+    PlaceholderScreen(
+        modifier = modifier,
+        title = "Device & power",
+        onBackClick = onBackClick
+    )
+}
+
+@Composable
+fun PlaceholderScreen(
+    modifier: Modifier = Modifier,
+    title: String,
+    onBackClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = title)
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(text = "Back")
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun DashboardScreenPreview() {
     VisionCoreTheme {
         DashboardScreen(
+            onManualOverrideClick = {},
+            onProfilesClick = {},
+            onPrescriptionClick = {},
+            onDevicePowerClick = {},
             onSettingsClick = {},
             onBluetoothClick = {}
         )
@@ -212,16 +349,16 @@ fun DashboardScreenPreview() {
 
 @Preview(showBackground = true)
 @Composable
-fun SettingsScreenPreview() {
+fun BluetoothScreenPreview() {
     VisionCoreTheme {
-        SettingsScreen(onBackClick = {})
+        BluetoothScreen(onBackClick = {})
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun BluetoothScreenPreview() {
+fun SettingsScreenPreview() {
     VisionCoreTheme {
-        BluetoothScreen(onBackClick = {})
+        SettingsScreen(onBackClick = {})
     }
 }
