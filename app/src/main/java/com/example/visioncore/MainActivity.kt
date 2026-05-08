@@ -209,11 +209,42 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit
 ) {
-    PlaceholderScreen(
-        modifier = modifier,
-        title = "Settings",
-        onBackClick = onBackClick
-    )
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Settings")
+
+        Button(onClick = {}) {
+            Text(text = "Stay in last mode")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Lock to NEAR")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Lock to FAR")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Go neutral 0 D")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Blink LED below 15%")
+        }
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(text = "Back")
+        }
+    }
 }
 
 @Composable
@@ -225,30 +256,25 @@ fun BluetoothScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Bluetooth")
 
-        Button(
-            onClick = {},
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
+        Button(onClick = {}) {
             Text(text = "Scan for devices")
         }
 
-        Button(
-            onClick = {},
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
+        Button(onClick = {}) {
             Text(text = "Connect")
         }
 
-        Button(
-            onClick = {},
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
+        Button(onClick = {}) {
             Text(text = "Disconnect")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Send test command")
         }
 
         Button(
@@ -265,11 +291,34 @@ fun ManualOverrideScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit
 ) {
-    PlaceholderScreen(
-        modifier = modifier,
-        title = "Manual override",
-        onBackClick = onBackClick
-    )
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Manual override")
+
+        Button(onClick = {}) {
+            Text(text = "Hold near")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Hold far")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Resume auto")
+        }
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(text = "Back")
+        }
+    }
 }
 
 @Composable
@@ -277,11 +326,30 @@ fun ProfilesScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit
 ) {
-    PlaceholderScreen(
-        modifier = modifier,
-        title = "Profiles",
-        onBackClick = onBackClick
-    )
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Profiles")
+
+        Button(onClick = {}) {
+            Text(text = "+ New")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Share profile via QR")
+        }
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(text = "Back")
+        }
+    }
 }
 
 @Composable
@@ -289,11 +357,30 @@ fun PrescriptionScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit
 ) {
-    PlaceholderScreen(
-        modifier = modifier,
-        title = "Prescription",
-        onBackClick = onBackClick
-    )
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Prescription")
+
+        Button(onClick = {}) {
+            Text(text = "Same value for both eyes")
+        }
+
+        Button(onClick = {}) {
+            Text(text = "Scan prescription card")
+        }
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            Text(text = "Back")
+        }
+    }
 }
 
 @Composable
@@ -301,27 +388,18 @@ fun DevicePowerScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit
 ) {
-    PlaceholderScreen(
-        modifier = modifier,
-        title = "Device & power",
-        onBackClick = onBackClick
-    )
-}
-
-@Composable
-fun PlaceholderScreen(
-    modifier: Modifier = Modifier,
-    title: String,
-    onBackClick: () -> Unit
-) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = title)
+        Text(text = "Device & power")
+
+        Button(onClick = {}) {
+            Text(text = "Recalibrate head")
+        }
 
         Button(
             onClick = onBackClick,
