@@ -14,6 +14,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,6 +50,10 @@ enum class Screen {
 @Composable
 fun VisionCoreApp() {
     var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
+
+    val profiles = remember { mutableStateListOf("Person 1") }
+    var activeProfile by remember { mutableStateOf("Person 1") }
+    var nextProfileNumber by remember { mutableStateOf(2) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize()
@@ -124,6 +129,23 @@ fun VisionCoreApp() {
 
                 ProfilesScreen(
                     modifier = Modifier.padding(innerPadding),
+                    profiles = profiles,
+                    activeProfile = activeProfile,
+                    onProfileClick = { profileName ->
+                        activeProfile = profileName
+                    },
+                    onAddProfileClick = {
+                        val newProfileName = "Person $nextProfileNumber"
+                        nextProfileNumber++
+                        profiles.add(newProfileName)
+                        activeProfile = newProfileName
+                    },
+                    onDeleteActiveProfileClick = {
+                        if (profiles.size > 1) {
+                            profiles.remove(activeProfile)
+                            activeProfile = profiles.first()
+                        }
+                    },
                     onBackClick = {
                         currentScreen = Screen.Dashboard
                     }
@@ -324,6 +346,11 @@ fun ManualOverrideScreen(
 @Composable
 fun ProfilesScreen(
     modifier: Modifier = Modifier,
+    profiles: List<String>,
+    activeProfile: String,
+    onProfileClick: (String) -> Unit,
+    onAddProfileClick: () -> Unit,
+    onDeleteActiveProfileClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
     Column(
@@ -335,12 +362,26 @@ fun ProfilesScreen(
     ) {
         Text(text = "Profiles")
 
-        Button(onClick = {}) {
+        profiles.forEach { profileName ->
+            Button(
+                onClick = {
+                    onProfileClick(profileName)
+                }
+            ) {
+                if (profileName == activeProfile) {
+                    Text(text = "$profileName · ACTIVE")
+                } else {
+                    Text(text = profileName)
+                }
+            }
+        }
+
+        Button(onClick = onAddProfileClick) {
             Text(text = "+ New")
         }
 
-        Button(onClick = {}) {
-            Text(text = "Share profile via QR")
+        Button(onClick = onDeleteActiveProfileClick) {
+            Text(text = "Delete profile")
         }
 
         Button(
@@ -421,6 +462,21 @@ fun DashboardScreenPreview() {
             onDevicePowerClick = {},
             onSettingsClick = {},
             onBluetoothClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProfilesScreenPreview() {
+    VisionCoreTheme {
+        ProfilesScreen(
+            profiles = listOf("Person 1", "Person 2"),
+            activeProfile = "Person 1",
+            onProfileClick = {},
+            onAddProfileClick = {},
+            onDeleteActiveProfileClick = {},
+            onBackClick = {}
         )
     }
 }
