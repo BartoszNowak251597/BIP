@@ -8,12 +8,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.visioncore.ui.theme.VisionCoreTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,23 +45,65 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+data class Profile(
+    val id: Int,
+    val name: String,
+    val createdAt: String,
+    val nearLeft: String = "+1.50",
+    val nearRight: String = "+1.75",
+    val farLeft: String = "-2.00",
+    val farRight: String = "-2.25"
+)
+
 enum class Screen {
     Dashboard,
     Settings,
     Bluetooth,
     ManualOverride,
     Profiles,
+    ProfileDetails,
     Prescription,
     DevicePower
+}
+
+fun getCurrentDateText(): String {
+    val formatter = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+    return formatter.format(Date())
 }
 
 @Composable
 fun VisionCoreApp() {
     var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
 
-    val profiles = remember { mutableStateListOf("Person 1") }
-    var activeProfile by remember { mutableStateOf("Person 1") }
-    var nextProfileNumber by remember { mutableStateOf(2) }
+    val profiles = remember {
+        mutableStateListOf(
+            Profile(
+                id = 1,
+                name = "Person 1",
+                createdAt = getCurrentDateText()
+            )
+        )
+    }
+
+    var activeProfileId by remember { mutableIntStateOf(1) }
+    var selectedProfileId by remember { mutableIntStateOf(1) }
+    var nextProfileId by remember { mutableIntStateOf(2) }
+
+    fun deleteProfile(profileId: Int) {
+        if (profiles.size > 1) {
+            profiles.removeAll { profile ->
+                profile.id == profileId
+            }
+
+            if (activeProfileId == profileId) {
+                activeProfileId = profiles.first().id
+            }
+
+            if (selectedProfileId == profileId) {
+                selectedProfileId = activeProfileId
+            }
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize()
@@ -130,26 +180,61 @@ fun VisionCoreApp() {
                 ProfilesScreen(
                     modifier = Modifier.padding(innerPadding),
                     profiles = profiles,
-                    activeProfile = activeProfile,
-                    onProfileClick = { profileName ->
-                        activeProfile = profileName
+                    activeProfileId = activeProfileId,
+                    onProfileClick = { profile ->
+                        activeProfileId = profile.id
+                        selectedProfileId = profile.id
+                        currentScreen = Screen.ProfileDetails
                     },
-                    onAddProfileClick = {
-                        val newProfileName = "Person $nextProfileNumber"
-                        nextProfileNumber++
-                        profiles.add(newProfileName)
-                        activeProfile = newProfileName
+                    onAddProfileClick = { profileName ->
+                        val finalProfileName = profileName.ifBlank {
+                            "Unnamed profile"
+                        }
+
+                        val newProfile = Profile(
+                            id = nextProfileId,
+                            name = finalProfileName,
+                            createdAt = getCurrentDateText()
+                        )
+
+                        profiles.add(newProfile)
+                        activeProfileId = newProfile.id
+                        selectedProfileId = newProfile.id
+                        nextProfileId++
                     },
                     onDeleteActiveProfileClick = {
-                        if (profiles.size > 1) {
-                            profiles.remove(activeProfile)
-                            activeProfile = profiles.first()
-                        }
+                        deleteProfile(activeProfileId)
                     },
                     onBackClick = {
                         currentScreen = Screen.Dashboard
                     }
                 )
+            }
+
+            Screen.ProfileDetails -> {
+                BackHandler {
+                    currentScreen = Screen.Profiles
+                }
+
+                val selectedProfile = profiles.firstOrNull { profile ->
+                    profile.id == selectedProfileId
+                }
+
+                if (selectedProfile != null) {
+                    ProfileDetailsScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        profile = selectedProfile,
+                        onDeleteProfileClick = {
+                            deleteProfile(selectedProfile.id)
+                            currentScreen = Screen.Profiles
+                        },
+                        onBackClick = {
+                            currentScreen = Screen.Profiles
+                        }
+                    )
+                } else {
+                    currentScreen = Screen.Profiles
+                }
             }
 
             Screen.Prescription -> {
@@ -178,6 +263,13 @@ fun VisionCoreApp() {
                 )
             }
         }
+    }
+}
+
+@Composable
+fun PlaceholderButton(text: String) {
+    Button(onClick = {}) {
+        Text(text = text)
     }
 }
 
@@ -240,25 +332,11 @@ fun SettingsScreen(
     ) {
         Text(text = "Settings")
 
-        Button(onClick = {}) {
-            Text(text = "Stay in last mode")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Lock to NEAR")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Lock to FAR")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Go neutral 0 D")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Blink LED below 15%")
-        }
+        PlaceholderButton(text = "Stay in last mode")
+        PlaceholderButton(text = "Lock to NEAR")
+        PlaceholderButton(text = "Lock to FAR")
+        PlaceholderButton(text = "Go neutral 0 D")
+        PlaceholderButton(text = "Blink LED below 15%")
 
         Button(
             onClick = onBackClick,
@@ -283,21 +361,10 @@ fun BluetoothScreen(
     ) {
         Text(text = "Bluetooth")
 
-        Button(onClick = {}) {
-            Text(text = "Scan for devices")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Connect")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Disconnect")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Send test command")
-        }
+        PlaceholderButton(text = "Scan for devices")
+        PlaceholderButton(text = "Connect")
+        PlaceholderButton(text = "Disconnect")
+        PlaceholderButton(text = "Send test command")
 
         Button(
             onClick = onBackClick,
@@ -322,17 +389,9 @@ fun ManualOverrideScreen(
     ) {
         Text(text = "Manual override")
 
-        Button(onClick = {}) {
-            Text(text = "Hold near")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Hold far")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Resume auto")
-        }
+        PlaceholderButton(text = "Hold near")
+        PlaceholderButton(text = "Hold far")
+        PlaceholderButton(text = "Resume auto")
 
         Button(
             onClick = onBackClick,
@@ -346,13 +405,15 @@ fun ManualOverrideScreen(
 @Composable
 fun ProfilesScreen(
     modifier: Modifier = Modifier,
-    profiles: List<String>,
-    activeProfile: String,
-    onProfileClick: (String) -> Unit,
-    onAddProfileClick: () -> Unit,
+    profiles: List<Profile>,
+    activeProfileId: Int,
+    onProfileClick: (Profile) -> Unit,
+    onAddProfileClick: (String) -> Unit,
     onDeleteActiveProfileClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
+    var newProfileName by remember { mutableStateOf("") }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -362,27 +423,90 @@ fun ProfilesScreen(
     ) {
         Text(text = "Profiles")
 
-        profiles.forEach { profileName ->
-            Button(
-                onClick = {
-                    onProfileClick(profileName)
-                }
-            ) {
-                if (profileName == activeProfile) {
-                    Text(text = "$profileName · ACTIVE")
-                } else {
-                    Text(text = profileName)
-                }
-            }
-        }
+        OutlinedTextField(
+            value = newProfileName,
+            onValueChange = { value ->
+                newProfileName = value
+            },
+            label = {
+                Text(text = "Profile name")
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        Button(onClick = onAddProfileClick) {
-            Text(text = "+ New")
+        Button(
+            onClick = {
+                onAddProfileClick(newProfileName)
+                newProfileName = ""
+            }
+        ) {
+            Text(text = "Add profile")
         }
 
         Button(onClick = onDeleteActiveProfileClick) {
+            Text(text = "Delete active profile")
+        }
+
+        Button(onClick = onBackClick) {
+            Text(text = "Back")
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(
+                items = profiles,
+                key = { profile ->
+                    profile.id
+                }
+            ) { profile ->
+                Button(
+                    onClick = {
+                        onProfileClick(profile)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (profile.id == activeProfileId) {
+                        Text(text = "${profile.name} · ACTIVE")
+                    } else {
+                        Text(text = profile.name)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileDetailsScreen(
+    modifier: Modifier = Modifier,
+    profile: Profile,
+    onDeleteProfileClick: () -> Unit,
+    onBackClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = profile.name)
+
+        Button(onClick = onDeleteProfileClick) {
             Text(text = "Delete profile")
         }
+
+        Text(text = "Created at: ${profile.createdAt}")
+
+        Text(text = "Diopters")
+        Text(text = "Near left: ${profile.nearLeft}")
+        Text(text = "Near right: ${profile.nearRight}")
+        Text(text = "Far left: ${profile.farLeft}")
+        Text(text = "Far right: ${profile.farRight}")
 
         Button(
             onClick = onBackClick,
@@ -407,13 +531,8 @@ fun PrescriptionScreen(
     ) {
         Text(text = "Prescription")
 
-        Button(onClick = {}) {
-            Text(text = "Same value for both eyes")
-        }
-
-        Button(onClick = {}) {
-            Text(text = "Scan prescription card")
-        }
+        PlaceholderButton(text = "Same value for both eyes")
+        PlaceholderButton(text = "Scan prescription card")
 
         Button(
             onClick = onBackClick,
@@ -438,9 +557,7 @@ fun DevicePowerScreen(
     ) {
         Text(text = "Device & power")
 
-        Button(onClick = {}) {
-            Text(text = "Recalibrate head")
-        }
+        PlaceholderButton(text = "Recalibrate head")
 
         Button(
             onClick = onBackClick,
@@ -471,11 +588,38 @@ fun DashboardScreenPreview() {
 fun ProfilesScreenPreview() {
     VisionCoreTheme {
         ProfilesScreen(
-            profiles = listOf("Person 1", "Person 2"),
-            activeProfile = "Person 1",
+            profiles = listOf(
+                Profile(
+                    id = 1,
+                    name = "Person 1",
+                    createdAt = "01.05.2026 14:00"
+                ),
+                Profile(
+                    id = 2,
+                    name = "Person 2",
+                    createdAt = "01.05.2026 14:05"
+                )
+            ),
+            activeProfileId = 1,
             onProfileClick = {},
             onAddProfileClick = {},
             onDeleteActiveProfileClick = {},
+            onBackClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProfileDetailsScreenPreview() {
+    VisionCoreTheme {
+        ProfileDetailsScreen(
+            profile = Profile(
+                id = 1,
+                name = "Person 1",
+                createdAt = "01.05.2026 14:00"
+            ),
+            onDeleteProfileClick = {},
             onBackClick = {}
         )
     }
