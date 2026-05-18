@@ -90,7 +90,10 @@ fun BluetoothScreenPreview() {
 fun SettingsScreenPreview() {
     VisionCoreTheme {
         AppBackground {
-            SettingsScreen(onBackClick = {})
+            SettingsScreen(
+                onBackClick = {},
+                onContinueClick = {}
+            )
         }
     }
 }

@@ -73,8 +73,15 @@ fun VisionCoreApp() {
 
             Screen.Settings -> {
                 BackHandler { currentScreen = Screen.Dashboard }
+
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
-                    SettingsScreen(onBackClick = { currentScreen = Screen.Dashboard })
+                    SettingsScreen(
+                        onBackClick = { currentScreen = Screen.Dashboard },
+                        onContinueClick = {
+                            // You can decide where "Continue" should go
+                            currentScreen = Screen.Dashboard
+                        }
+                    )
                 }
             }
 
