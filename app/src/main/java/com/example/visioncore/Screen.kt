@@ -8,6 +8,7 @@ enum class Screen {
     ManualOverride,
     Profiles,
     ProfileDetails,
+    CreateProfile,
     Prescription,
-    DevicePower
+    DevicePower,
 }

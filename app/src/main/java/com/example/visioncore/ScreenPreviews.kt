@@ -51,7 +51,8 @@ fun ProfilesScreenPreview() {
                 onProfileClick = {},
                 onAddProfileClick = {},
                 onDeleteActiveProfileClick = {},
-                onBackClick = {}
+                onBackClick = {},
+                onContinueClick = {}
             )
         }
     }
