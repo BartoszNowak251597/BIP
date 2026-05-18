@@ -18,6 +18,11 @@ fun DashboardScreenPreview() {
     VisionCoreTheme {
         AppBackground {
             DashboardScreen(
+                bluetoothCompleted = false,
+                profileCompleted = false,
+                prescriptionCompleted = false,
+                calibrationCompleted = false,
+                settingsCompleted = false,
                 onManualOverrideClick = {},
                 onProfilesClick = {},
                 onPrescriptionClick = {},
@@ -81,7 +86,11 @@ fun ProfileDetailsScreenPreview() {
 fun BluetoothScreenPreview() {
     VisionCoreTheme {
         AppBackground {
-            BluetoothScreen(onBackClick = {})
+            BluetoothScreen(
+                onBackClick = {},
+                onConnected = {},
+                onContinueClick = {}
+            )
         }
     }
 }

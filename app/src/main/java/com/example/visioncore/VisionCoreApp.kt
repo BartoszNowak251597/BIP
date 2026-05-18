@@ -4,14 +4,20 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
 @Composable
 fun VisionCoreApp() {
-
     var currentScreen by rememberSaveable { mutableStateOf(Screen.Onboarding) }
 
     val profiles = remember {
@@ -27,6 +33,12 @@ fun VisionCoreApp() {
     var activeProfileId by rememberSaveable { mutableIntStateOf(1) }
     var selectedProfileId by rememberSaveable { mutableIntStateOf(1) }
     var nextProfileId by rememberSaveable { mutableIntStateOf(2) }
+
+    var bluetoothCompleted by rememberSaveable { mutableStateOf(false) }
+    var profileCompleted by rememberSaveable { mutableStateOf(false) }
+    var prescriptionCompleted by rememberSaveable { mutableStateOf(false) }
+    var calibrationCompleted by rememberSaveable { mutableStateOf(false) }
+    var settingsCompleted by rememberSaveable { mutableStateOf(false) }
 
     fun deleteProfile(profileId: Int) {
         if (profiles.size > 1) {
@@ -57,17 +69,13 @@ fun VisionCoreApp() {
         }
     }
 
-    BackHandler {
-        goBack()
-    }
+    BackHandler { goBack() }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent
     ) { innerPadding ->
-
         when (currentScreen) {
-
             Screen.Onboarding -> {
                 OnboardingScreen(
                     modifier = Modifier.padding(innerPadding),
@@ -78,6 +86,11 @@ fun VisionCoreApp() {
             Screen.Dashboard -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     DashboardScreen(
+                        bluetoothCompleted = bluetoothCompleted,
+                        profileCompleted = profileCompleted,
+                        prescriptionCompleted = prescriptionCompleted,
+                        calibrationCompleted = calibrationCompleted,
+                        settingsCompleted = settingsCompleted,
                         onManualOverrideClick = { currentScreen = Screen.ManualOverride },
                         onProfilesClick = { currentScreen = Screen.Profiles },
                         onPrescriptionClick = { currentScreen = Screen.Prescription },
@@ -92,7 +105,10 @@ fun VisionCoreApp() {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     SettingsScreen(
                         onBackClick = { currentScreen = Screen.Dashboard },
-                        onContinueClick = { currentScreen = Screen.Dashboard }
+                        onContinueClick = {
+                            settingsCompleted = true
+                            currentScreen = Screen.Dashboard
+                        }
                     )
                 }
             }
@@ -100,7 +116,11 @@ fun VisionCoreApp() {
             Screen.Bluetooth -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     BluetoothScreen(
-                        onBackClick = { currentScreen = Screen.Dashboard }
+                        onBackClick = { currentScreen = Screen.Dashboard },
+                        onConnected = {
+                            bluetoothCompleted = true
+                        },
+                        onContinueClick = { currentScreen = Screen.Dashboard }
                     )
                 }
             }
@@ -118,28 +138,19 @@ fun VisionCoreApp() {
                     ProfilesScreen(
                         profiles = profiles,
                         activeProfileId = activeProfileId,
-
                         onProfileClick = { profile ->
                             activeProfileId = profile.id
                             selectedProfileId = profile.id
+                            profileCompleted = true
                             currentScreen = Screen.ProfileDetails
                         },
-
-                        onAddProfileClick = {
-                            currentScreen = Screen.CreateProfile
-                        },
-
-                        onDeleteActiveProfileClick = {
-                            deleteProfile(activeProfileId)
-                        },
-
+                        onAddProfileClick = { currentScreen = Screen.CreateProfile },
+                        onDeleteActiveProfileClick = { deleteProfile(activeProfileId) },
                         onContinueClick = {
+                            profileCompleted = true
                             currentScreen = Screen.Dashboard
                         },
-
-                        onBackClick = {
-                            currentScreen = Screen.Dashboard
-                        }
+                        onBackClick = { currentScreen = Screen.Dashboard }
                     )
                 }
             }
@@ -148,7 +159,6 @@ fun VisionCoreApp() {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     CreateProfileScreen(
                         onBackClick = { currentScreen = Screen.Profiles },
-
                         onAddProfile = { name, age ->
                             val finalName = name.ifBlank { "Unnamed profile" }
 
@@ -159,11 +169,10 @@ fun VisionCoreApp() {
                             )
 
                             profiles.add(newProfile)
-
                             activeProfileId = newProfile.id
                             selectedProfileId = newProfile.id
+                            profileCompleted = true
                             nextProfileId++
-
                             currentScreen = Screen.Profiles
                         }
                     )
@@ -174,7 +183,6 @@ fun VisionCoreApp() {
                 val selectedProfile = profiles.firstOrNull { it.id == selectedProfileId }
 
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
-
                     if (selectedProfile == null) {
                         LaunchedEffect(Unit) {
                             currentScreen = Screen.Profiles
@@ -186,9 +194,7 @@ fun VisionCoreApp() {
                                 deleteProfile(selectedProfile.id)
                                 currentScreen = Screen.Profiles
                             },
-                            onBackClick = {
-                                currentScreen = Screen.Profiles
-                            }
+                            onBackClick = { currentScreen = Screen.Profiles }
                         )
                     }
                 }
@@ -198,7 +204,10 @@ fun VisionCoreApp() {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     PrescriptionScreen(
                         onBackClick = { currentScreen = Screen.Dashboard },
-                        onContinueClick = { currentScreen = Screen.Dashboard}
+                        onContinueClick = {
+                            prescriptionCompleted = true
+                            currentScreen = Screen.Dashboard
+                        }
                     )
                 }
             }
@@ -206,7 +215,10 @@ fun VisionCoreApp() {
             Screen.DevicePower -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     DevicePowerScreen(
-                        onBackClick = { currentScreen = Screen.Dashboard }
+                        onBackClick = {
+                            calibrationCompleted = true
+                            currentScreen = Screen.Dashboard
+                        }
                     )
                 }
             }
