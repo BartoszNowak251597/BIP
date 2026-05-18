@@ -2,11 +2,19 @@ package com.example.visioncore
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -18,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -29,6 +38,12 @@ import androidx.compose.ui.unit.sp
 import com.caverock.androidsvg.SVG
 import kotlinx.coroutines.delay
 
+data class BluetoothDeviceUi(
+    val name: String,
+    val address: String,
+    val rssi: Int
+)
+
 @Composable
 fun BluetoothScreen(
     modifier: Modifier = Modifier,
@@ -37,16 +52,77 @@ fun BluetoothScreen(
     onContinueClick: () -> Unit
 ) {
     var isSearching by remember { mutableStateOf(false) }
-    var deviceFound by remember { mutableStateOf(false) }
-    var connected by remember { mutableStateOf(false) }
+    var connectedDeviceAddress by remember { mutableStateOf<String?>(null) }
 
+    val foundDevices = remember {
+        mutableStateListOf<BluetoothDeviceUi>()
+    }
+
+    /*
+     * TODO: Here need to add bluetooth scanned devices
+     */
     LaunchedEffect(isSearching) {
-        if (isSearching && !deviceFound && !connected) {
+        if (isSearching) {
             delay(1800)
-            deviceFound = true
-            isSearching = false
+
+            if (isSearching) {
+                foundDevices.clear()
+
+                foundDevices.add(
+                    BluetoothDeviceUi(
+                        name = "VisionCore-A2FI",
+                        address = "00:11:22:33:44:55",
+                        rssi = -42
+                    )
+                )
+
+                foundDevices.add(
+                    BluetoothDeviceUi(
+                        name = "VisionCore-B9K2",
+                        address = "00:11:22:33:44:66",
+                        rssi = -55
+                    )
+                )
+
+                foundDevices.add(
+                    BluetoothDeviceUi(
+                        name = "Unknown BLE Device",
+                        address = "00:11:22:33:44:77",
+                        rssi = -71
+                    )
+                )
+
+                foundDevices.add(
+                    BluetoothDeviceUi(
+                        name = "VisionCore-Test",
+                        address = "00:11:22:33:44:88",
+                        rssi = -63
+                    )
+                )
+
+                isSearching = false
+            }
+        } else {
+            /*
+             * TODO: Start searchin animation
+             */
         }
     }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "bluetooth-loader")
+
+    val loaderRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 900,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "loader-rotation"
+    )
 
     Column(
         modifier = modifier
@@ -110,7 +186,7 @@ fun BluetoothScreen(
             Spacer(modifier = Modifier.width(6.dp))
 
             when {
-                deviceFound || connected -> {
+                foundDevices.isNotEmpty() || connectedDeviceAddress != null -> {
                     SvgImage(
                         svgCode = checkSvg,
                         width = 26.dp,
@@ -124,7 +200,8 @@ fun BluetoothScreen(
                         svgCode = loaderSvg,
                         width = 24.dp,
                         height = 24.dp,
-                        contentDescription = "Searching"
+                        contentDescription = "Searching",
+                        modifier = Modifier.rotate(loaderRotation)
                     )
                 }
 
@@ -150,16 +227,39 @@ fun BluetoothScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        DeviceCard(
-            isSearching = isSearching,
-            deviceFound = deviceFound,
-            connected = connected,
-            onConnectClick = {
-                connected = true
-                isSearching = false
-                onConnected()
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 78.dp, max = 220.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (foundDevices.isEmpty()) {
+                item {
+                    EmptyDeviceCard(
+                        isSearching = isSearching
+                    )
+                }
             }
-        )
+
+            items(
+                items = foundDevices,
+                key = { device -> device.address }
+            ) { device ->
+                DeviceCard(
+                    device = device,
+                    connected = connectedDeviceAddress == device.address,
+                    onConnectClick = {
+                        /*
+                         * TODO: Here call the real device (Now mock only ofc)
+                         */
+
+                        connectedDeviceAddress = device.address
+                        isSearching = false
+                        onConnected()
+                    }
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(18.dp))
 
@@ -167,13 +267,21 @@ fun BluetoothScreen(
             onClick = {
                 if (isSearching) {
                     isSearching = false
+
+                    /*
+                     * TODO: stop scan here
+                     */
                 } else {
-                    connected = false
-                    deviceFound = false
+                    connectedDeviceAddress = null
+                    foundDevices.clear()
                     isSearching = true
+
+                    /*
+                     * TODO: Start scan here
+                     */
                 }
             },
-            enabled = !connected,
+            enabled = connectedDeviceAddress == null,
             modifier = Modifier
                 .fillMaxWidth(0.72f)
                 .height(44.dp),
@@ -196,8 +304,8 @@ fun BluetoothScreen(
 
         Text(
             text = when {
-                connected -> "Connected"
-                deviceFound -> "Device found"
+                connectedDeviceAddress != null -> "Connected"
+                foundDevices.isNotEmpty() -> "Device found"
                 isSearching -> "Searching"
                 else -> "Ready to search"
             },
@@ -208,8 +316,8 @@ fun BluetoothScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = { if (connected) onContinueClick() },
-            enabled = connected,
+            onClick = { if (connectedDeviceAddress != null) onContinueClick() },
+            enabled = connectedDeviceAddress != null,
             modifier = Modifier
                 .fillMaxWidth(0.72f)
                 .height(48.dp),
@@ -243,9 +351,44 @@ fun BluetoothScreen(
 }
 
 @Composable
+private fun EmptyDeviceCard(
+    isSearching: Boolean
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(78.dp)
+            .border(2.dp, Color.Black, RoundedCornerShape(18.dp)),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = if (isSearching) "Searching for VisionCore..." else "No device selected",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = if (isSearching) "Make sure LED is blinking" else "Press Search to find glasses",
+                fontSize = 11.sp,
+                color = Color.Black
+            )
+        }
+    }
+}
+
+@Composable
 private fun DeviceCard(
-    isSearching: Boolean,
-    deviceFound: Boolean,
+    device: BluetoothDeviceUi,
     connected: Boolean,
     onConnectClick: () -> Unit
 ) {
@@ -266,12 +409,7 @@ private fun DeviceCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = when {
-                        connected -> "VisionCore-A2FI"
-                        deviceFound -> "VisionCore-A2FI"
-                        isSearching -> "Searching for VisionCore..."
-                        else -> "No device selected"
-                    },
+                    text = device.name,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -279,11 +417,10 @@ private fun DeviceCard(
                 Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
-                    text = when {
-                        connected -> "Connected"
-                        deviceFound -> "Nearby -42 DBM"
-                        isSearching -> "Make sure LED is blinking"
-                        else -> "Press Search to find glasses"
+                    text = if (connected) {
+                        "Connected"
+                    } else {
+                        "Nearby ${device.rssi} DBM"
                     },
                     fontSize = 11.sp,
                     color = Color.Black
@@ -299,7 +436,6 @@ private fun DeviceCard(
             } else {
                 Button(
                     onClick = onConnectClick,
-                    enabled = deviceFound,
                     modifier = Modifier
                         .height(32.dp)
                         .clip(CircleShape),
@@ -307,9 +443,7 @@ private fun DeviceCard(
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black,
-                        contentColor = Color.White,
-                        disabledContainerColor = Color.Black.copy(alpha = 0.35f),
-                        disabledContentColor = Color.White
+                        contentColor = Color.White
                     )
                 ) {
                     Text(
@@ -328,7 +462,8 @@ private fun SvgImage(
     svgCode: String,
     width: Dp,
     height: Dp,
-    contentDescription: String?
+    contentDescription: String?,
+    modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
     val widthPx = with(density) { width.roundToPx() }.coerceAtLeast(1)
@@ -354,7 +489,7 @@ private fun SvgImage(
         Image(
             bitmap = bitmap,
             contentDescription = contentDescription,
-            modifier = Modifier.size(width, height),
+            modifier = modifier.size(width, height),
             contentScale = ContentScale.Fit
         )
     }
