@@ -42,6 +42,16 @@ fun DashboardScreen(
     onSettingsClick: () -> Unit,
     onBluetoothClick: () -> Unit
 ) {
+    val firstFourCompleted =
+        bluetoothCompleted &&
+                profileCompleted &&
+                prescriptionCompleted &&
+                calibrationCompleted
+
+    val allSetupCompleted =
+        firstFourCompleted &&
+                settingsCompleted
+
     val activeStep = when {
         !bluetoothCompleted -> 1
         !profileCompleted -> 2
@@ -144,32 +154,57 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Button(
-                    onClick = onManualOverrideClick,
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth(.55f)
-                        .height(48.dp)
-                ) {
-                    Text(
-                        text = "Skip rest",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Text(
-                        text = "▶ ▶",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                SetupBottomButton(
+                    text = if (allSetupCompleted) "Continue" else "Skip rest",
+                    isPrimary = allSetupCompleted,
+                    enabled = firstFourCompleted,
+                    onClick = onManualOverrideClick
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun SetupBottomButton(
+    text: String,
+    isPrimary: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(50),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isPrimary) Color.Black else Color(0xFFFF1919),
+            contentColor = if (isPrimary) Color.White else Color.Black,
+            disabledContainerColor = if (isPrimary) {
+                Color.Black.copy(alpha = 0.35f)
+            } else {
+                Color(0xFFFF1919).copy(alpha = 0.35f)
+            },
+            disabledContentColor = if (isPrimary) {
+                Color.White
+            } else {
+                Color.Black.copy(alpha = 0.45f)
+            }
+        ),
+        modifier = Modifier
+            .fillMaxWidth(.55f)
+            .height(48.dp)
+    ) {
+        Text(
+            text = text,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Text(
+            text = if (isPrimary) "▶" else "▶ ▶",
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 

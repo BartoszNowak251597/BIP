@@ -66,6 +66,7 @@ fun VisionCoreApp() {
             Screen.DevicePower,
             Screen.ProfileDetails -> Screen.Dashboard
             Screen.CreateProfile -> Screen.Profiles
+            Screen.AllSet -> Screen.Dashboard
         }
     }
 
@@ -91,7 +92,7 @@ fun VisionCoreApp() {
                         prescriptionCompleted = prescriptionCompleted,
                         calibrationCompleted = calibrationCompleted,
                         settingsCompleted = settingsCompleted,
-                        onManualOverrideClick = { currentScreen = Screen.ManualOverride },
+                        onManualOverrideClick = { currentScreen = Screen.AllSet },
                         onProfilesClick = { currentScreen = Screen.Profiles },
                         onPrescriptionClick = { currentScreen = Screen.Prescription },
                         onDevicePowerClick = { currentScreen = Screen.DevicePower },
@@ -225,6 +226,16 @@ fun VisionCoreApp() {
                         }
                     )
                 }
+            }
+            Screen.AllSet -> {
+                AllSetScreen(
+                    onBackClick = {
+                        currentScreen = Screen.Dashboard
+                    },
+                    onContinueClick = {
+                        currentScreen = Screen.ManualOverride
+                    }
+                )
             }
         }
     }

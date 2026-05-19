@@ -11,4 +11,5 @@ enum class Screen {
     CreateProfile,
     Prescription,
     DevicePower,
+    AllSet,
 }
