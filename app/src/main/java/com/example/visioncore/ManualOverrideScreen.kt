@@ -99,6 +99,7 @@ fun ManualOverrideScreen(
 ) {
     var selectedTab by remember { mutableStateOf(ManualTab.Now) }
     var selectedMode by remember { mutableStateOf(ManualMode.Near) }
+    var autoModeEnabled by remember { mutableStateOf(true) }
     var selectedProfileId by remember { mutableStateOf(activeProfileId) }
 
     var deadBatteryMode by remember {
@@ -131,8 +132,12 @@ fun ManualOverrideScreen(
                         NowTab(
                             setupConfig = setupConfig,
                             selectedMode = selectedMode,
+                            autoModeEnabled = autoModeEnabled,
                             darkMode = darkColorMode,
-                            onModeSelected = { selectedMode = it }
+                            onModeSelected = { mode ->
+                                selectedMode = mode
+                                autoModeEnabled = false
+                            }
                         )
                     }
 
@@ -319,6 +324,7 @@ private fun ManualTabButton(
 private fun NowTab(
     setupConfig: SetupConfig,
     selectedMode: ManualMode,
+    autoModeEnabled: Boolean,
     darkMode: Boolean,
     onModeSelected: (ManualMode) -> Unit
 ) {
@@ -350,7 +356,7 @@ private fun NowTab(
                     )
                 }
 
-                AutoToggleBadge(darkMode = darkMode)
+                AutoToggleBadge(autoModeEnabled = autoModeEnabled, darkMode = darkMode)
             }
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -632,8 +638,8 @@ private fun DeviceTab(
             .fillMaxSize()
             .background(bgColor(darkColorMode))
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp)
-            .padding(top = 12.dp, bottom = 32.dp)
+            .padding(horizontal = 16.dp)
+            .padding(top = 16.dp, bottom = 40.dp)
     ) {
         DeviceCard(
             deviceName = setupConfig.bluetoothDeviceName.ifBlank { "VisionCore-A2FI" },
@@ -722,6 +728,7 @@ private fun DeviceTab(
 
 @Composable
 private fun AutoToggleBadge(
+    autoModeEnabled: Boolean,
     darkMode: Boolean
 ) {
     Row(
@@ -741,7 +748,7 @@ private fun AutoToggleBadge(
         Spacer(modifier = Modifier.width(4.dp))
 
         Text(
-            text = "ON",
+            text = if (autoModeEnabled) "ON" else "OFF",
             color = selectedFgColor(darkMode),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold
@@ -992,8 +999,8 @@ private fun DeviceOptionButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .padding(bottom = 8.dp),
+            .height(64.dp)
+            .padding(bottom = 10.dp),
         shape = RoundedCornerShape(50.dp),
         border = BorderStroke(
             width = 2.dp,
@@ -1003,7 +1010,7 @@ private fun DeviceOptionButton(
             containerColor = if (selected) selectedBgColor(darkMode) else bgColor(darkMode),
             contentColor = if (selected) selectedFgColor(darkMode) else fgColor(darkMode)
         ),
-        contentPadding = PaddingValues(horizontal = 22.dp, vertical = 0.dp)
+        contentPadding = PaddingValues(horizontal = 26.dp, vertical = 6.dp)
     ) {
         Box(
             modifier = Modifier.fillMaxWidth(),
@@ -1028,15 +1035,15 @@ private fun DeviceNavigationButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .padding(bottom = 8.dp),
+            .height(64.dp)
+            .padding(bottom = 10.dp),
         shape = RoundedCornerShape(50.dp),
         border = BorderStroke(2.dp, fgColor(darkMode)),
         colors = ButtonDefaults.buttonColors(
             containerColor = bgColor(darkMode),
             contentColor = fgColor(darkMode)
         ),
-        contentPadding = PaddingValues(horizontal = 22.dp, vertical = 0.dp)
+        contentPadding = PaddingValues(horizontal = 26.dp, vertical = 6.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1069,8 +1076,8 @@ private fun DeviceSwitchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .padding(bottom = 8.dp)
+            .height(64.dp)
+            .padding(bottom = 10.dp)
             .clip(RoundedCornerShape(50.dp))
             .background(bgColor(darkMode))
             .border(
@@ -1078,7 +1085,7 @@ private fun DeviceSwitchRow(
                 color = if (highlighted) Color(0xFFFF1919) else fgColor(darkMode),
                 shape = RoundedCornerShape(50.dp)
             )
-            .padding(start = 22.dp, end = 10.dp),
+            .padding(start = 26.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(

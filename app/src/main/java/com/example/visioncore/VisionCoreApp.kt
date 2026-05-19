@@ -210,16 +210,20 @@ fun VisionCoreApp() {
                             activeProfileId = profile.id
                             selectedProfileId = profile.id
                             profileCompleted = true
+                            saveSetupConfig()
                         },
                         onAddProfileClick = { currentScreen = Screen.CreateProfile },
                         onEditProfileClick = { profile, newName ->
                             editProfile(profile.id, newName)
+                            saveSetupConfig()
                         },
                         onDeleteProfileClick = { profile ->
                             deleteProfile(profile.id)
+                            saveSetupConfig()
                         },
                         onContinueClick = {
                             profileCompleted = true
+                            saveSetupConfig()
                             currentScreen = Screen.Dashboard
                         },
                         onBackClick = { currentScreen = Screen.Dashboard }
