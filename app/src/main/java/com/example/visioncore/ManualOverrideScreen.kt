@@ -69,12 +69,6 @@ private enum class ManualMode {
     Off
 }
 
-private enum class DeviceScreen {
-    Main,
-    RecalibrationIntro,
-    Dioptries
-}
-
 private fun bgColor(darkMode: Boolean): Color {
     return if (darkMode) Color.Black else Color.White
 }
@@ -99,12 +93,13 @@ fun ManualOverrideScreen(
     activeProfileId: Int = profiles.firstOrNull()?.id ?: 0,
     onProfileSelected: (Profile) -> Unit = {},
     onProfileEdited: (Profile) -> Unit = {},
+    onRecalibrateClick: () -> Unit = {},
+    onDioptriesClick: () -> Unit = {},
     onBackClick: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(ManualTab.Now) }
     var selectedMode by remember { mutableStateOf(ManualMode.Near) }
     var selectedProfileId by remember { mutableStateOf(activeProfileId) }
-    var selectedDeviceScreen by remember { mutableStateOf(DeviceScreen.Main) }
 
     var deadBatteryMode by remember {
         mutableStateOf(setupConfig.deadBatteryMode.ifBlank { "Stay in last mode" })
@@ -158,49 +153,19 @@ fun ManualOverrideScreen(
                     }
 
                     ManualTab.Device -> {
-                        when (selectedDeviceScreen) {
-                            DeviceScreen.Main -> {
-                                DeviceTab(
-                                    setupConfig = setupConfig,
-                                    deadBatteryMode = deadBatteryMode,
-                                    onDeadBatteryModeSelected = { deadBatteryMode = it },
-                                    blinkRedBeforeLowBattery = blinkRedBeforeLowBattery,
-                                    onBlinkRedBeforeLowBatteryChange = {
-                                        blinkRedBeforeLowBattery = it
-                                    },
-                                    darkColorMode = darkColorMode,
-                                    onDarkColorModeChange = { darkColorMode = it },
-                                    onRecalibrateClick = {
-                                        selectedDeviceScreen = DeviceScreen.RecalibrationIntro
-                                    },
-                                    onDioptriesClick = {
-                                        selectedDeviceScreen = DeviceScreen.Dioptries
-                                    }
-                                )
-                            }
-
-                            DeviceScreen.RecalibrationIntro -> {
-                                RecalibrationIntroScreen(
-                                    darkMode = darkColorMode,
-                                    onStartClick = {
-                                        selectedDeviceScreen = DeviceScreen.Main
-                                    },
-                                    onBackClick = {
-                                        selectedDeviceScreen = DeviceScreen.Main
-                                    }
-                                )
-                            }
-
-
-                            DeviceScreen.Dioptries -> {
-                                DioptriesDeviceScreen(
-                                    darkMode = darkColorMode,
-                                    onBackClick = {
-                                        selectedDeviceScreen = DeviceScreen.Main
-                                    }
-                                )
-                            }
-                        }
+                        DeviceTab(
+                            setupConfig = setupConfig,
+                            deadBatteryMode = deadBatteryMode,
+                            onDeadBatteryModeSelected = { deadBatteryMode = it },
+                            blinkRedBeforeLowBattery = blinkRedBeforeLowBattery,
+                            onBlinkRedBeforeLowBatteryChange = {
+                                blinkRedBeforeLowBattery = it
+                            },
+                            darkColorMode = darkColorMode,
+                            onDarkColorModeChange = { darkColorMode = it },
+                            onRecalibrateClick = onRecalibrateClick,
+                            onDioptriesClick = onDioptriesClick
+                        )
                     }
                 }
             }
@@ -210,10 +175,6 @@ fun ManualOverrideScreen(
                 darkMode = darkColorMode,
                 onTabSelected = { tab ->
                     selectedTab = tab
-
-                    if (tab != ManualTab.Device) {
-                        selectedDeviceScreen = DeviceScreen.Main
-                    }
                 }
             )
         }
@@ -756,153 +717,6 @@ private fun DeviceTab(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-@Composable
-private fun RecalibrationIntroScreen(
-    darkMode: Boolean,
-    onStartClick: () -> Unit,
-    onBackClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(bgColor(darkMode))
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Text(
-            text = "◀ Back",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = fgColor(darkMode),
-            modifier = Modifier.clickable { onBackClick() }
-        )
-
-        Text(
-            text = "Recalibrate head",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = fgColor(darkMode)
-        )
-
-        Text(
-            text = "Keep your head straight and look forward. Start calibration when the glasses are in the correct position.",
-            fontSize = 14.sp,
-            lineHeight = 22.sp,
-            color = fgColor(darkMode)
-        )
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        Button(
-            onClick = onStartClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(50.dp),
-            border = BorderStroke(2.dp, fgColor(darkMode)),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = selectedBgColor(darkMode),
-                contentColor = selectedFgColor(darkMode)
-            )
-        ) {
-            Text(
-                text = "Start recalibration",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Button(
-            onClick = onBackClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(50.dp),
-            border = BorderStroke(2.dp, fgColor(darkMode)),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = bgColor(darkMode),
-                contentColor = fgColor(darkMode)
-            )
-        ) {
-            Text(
-                text = "Back to device",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-private fun DioptriesDeviceScreen(
-    darkMode: Boolean,
-    onBackClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(bgColor(darkMode))
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Text(
-            text = "◀ Back",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = fgColor(darkMode),
-            modifier = Modifier.clickable { onBackClick() }
-        )
-
-        Text(
-            text = "Dioptries",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = fgColor(darkMode)
-        )
-
-        Text(
-            text = "Adjust or review the dioptry values used by the glasses.",
-            fontSize = 14.sp,
-            color = fgColor(darkMode)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        DeviceNavigationButton(
-            text = "Near values",
-            darkMode = darkMode,
-            onClick = {}
-        )
-
-        DeviceNavigationButton(
-            text = "Far values",
-            darkMode = darkMode,
-            onClick = {}
-        )
-
-        Button(
-            onClick = onBackClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(50.dp),
-            border = BorderStroke(2.dp, fgColor(darkMode)),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = bgColor(darkMode),
-                contentColor = fgColor(darkMode)
-            )
-        ) {
-            Text(
-                text = "Back to device",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
     }
 }
 
