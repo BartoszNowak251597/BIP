@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ManualOverrideScreen(
     modifier: Modifier = Modifier,
+    setupConfig: SetupConfig = SetupConfig(),
     onBackClick: () -> Unit
 ) {
     Column(

@@ -40,6 +40,29 @@ fun VisionCoreApp() {
     var calibrationCompleted by rememberSaveable { mutableStateOf(false) }
     var settingsCompleted by rememberSaveable { mutableStateOf(false) }
 
+    var setupConfig by remember {
+        mutableStateOf(SetupConfig())
+    }
+
+    fun saveSetupConfig() {
+        val activeProfile = profiles.firstOrNull { it.id == activeProfileId }
+
+        setupConfig = SetupConfig(
+            bluetoothDeviceName = if (bluetoothCompleted) "VisionCore-A2FI" else "",
+            activeProfileName = activeProfile?.name.orEmpty(),
+            nearLeft = activeProfile?.nearLeft ?: "+1.50",
+            nearRight = activeProfile?.nearRight ?: "+1.50",
+            farLeft = activeProfile?.farLeft ?: "-2.00",
+            farRight = activeProfile?.farRight ?: "-2.00",
+            calibrationCompleted = calibrationCompleted,
+            deadBatteryMode = if (settingsCompleted) {
+                "Configured"
+            } else {
+                "Stay in last mode"
+            }
+        )
+    }
+
     fun deleteProfile(profileId: Int) {
         if (profiles.size > 1) {
             profiles.removeAll { it.id == profileId }
@@ -92,7 +115,10 @@ fun VisionCoreApp() {
                         prescriptionCompleted = prescriptionCompleted,
                         calibrationCompleted = calibrationCompleted,
                         settingsCompleted = settingsCompleted,
-                        onManualOverrideClick = { currentScreen = Screen.AllSet },
+                        onManualOverrideClick = {
+                            saveSetupConfig()
+                            currentScreen = Screen.AllSet
+                            },
                         onProfilesClick = { currentScreen = Screen.Profiles },
                         onPrescriptionClick = { currentScreen = Screen.Prescription },
                         onDevicePowerClick = { currentScreen = Screen.DevicePower },
@@ -129,6 +155,7 @@ fun VisionCoreApp() {
             Screen.ManualOverride -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     ManualOverrideScreen(
+                        setupConfig = setupConfig,
                         onBackClick = { currentScreen = Screen.Dashboard }
                     )
                 }
