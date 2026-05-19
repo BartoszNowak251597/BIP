@@ -215,8 +215,12 @@ fun VisionCoreApp() {
             Screen.DevicePower -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     DevicePowerScreen(
-                        onBackClick = {
+                        onBackClick = { currentScreen = Screen.Dashboard },
+                        onCompleted = {
                             calibrationCompleted = true
+                            currentScreen = Screen.Dashboard
+                        },
+                        onSkipClick = {
                             currentScreen = Screen.Dashboard
                         }
                     )
