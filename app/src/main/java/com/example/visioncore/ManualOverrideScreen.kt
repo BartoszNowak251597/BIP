@@ -1,6 +1,10 @@
 package com.example.visioncore
 
+import android.graphics.Bitmap
+import android.graphics.Canvas as AndroidCanvas
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,14 +25,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,10 +44,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.caverock.androidsvg.SVG
 
 private enum class ManualTab {
     Now,
@@ -51,6 +67,12 @@ private enum class ManualMode {
     Near,
     Far,
     Off
+}
+
+private enum class DeviceScreen {
+    Main,
+    RecalibrationIntro,
+    Dioptries
 }
 
 private fun bgColor(darkMode: Boolean): Color {
@@ -76,12 +98,18 @@ fun ManualOverrideScreen(
     profiles: List<Profile> = defaultManualProfiles(),
     activeProfileId: Int = profiles.firstOrNull()?.id ?: 0,
     onProfileSelected: (Profile) -> Unit = {},
+    onProfileEdited: (Profile) -> Unit = {},
     onBackClick: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(ManualTab.Now) }
     var selectedMode by remember { mutableStateOf(ManualMode.Near) }
     var selectedProfileId by remember { mutableStateOf(activeProfileId) }
-    var deadBatteryMode by remember { mutableStateOf(setupConfig.deadBatteryMode.ifBlank { "Stay in last mode" }) }
+    var selectedDeviceScreen by remember { mutableStateOf(DeviceScreen.Main) }
+
+    var deadBatteryMode by remember {
+        mutableStateOf(setupConfig.deadBatteryMode.ifBlank { "Stay in last mode" })
+    }
+
     var blinkRedBeforeLowBattery by remember { mutableStateOf(true) }
     var darkColorMode by remember { mutableStateOf(false) }
 
@@ -94,50 +122,171 @@ fun ManualOverrideScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(bgColor(darkColorMode))
+                .navigationBarsPadding()
         ) {
+            ManualTopBanner()
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                when (selectedTab) {
+                    ManualTab.Now -> {
+                        NowTab(
+                            setupConfig = setupConfig,
+                            selectedMode = selectedMode,
+                            darkMode = darkColorMode,
+                            onModeSelected = { selectedMode = it }
+                        )
+                    }
+
+                    ManualTab.Profiles -> {
+                        ProfilesTab(
+                            profiles = profiles,
+                            activeProfileId = selectedProfileId,
+                            darkMode = darkColorMode,
+                            onProfileClick = { profile ->
+                                selectedProfileId = profile.id
+                                onProfileSelected(profile)
+                            },
+                            onProfileEdit = { updatedProfile ->
+                                selectedProfileId = updatedProfile.id
+                                onProfileEdited(updatedProfile)
+                            }
+                        )
+                    }
+
+                    ManualTab.Device -> {
+                        when (selectedDeviceScreen) {
+                            DeviceScreen.Main -> {
+                                DeviceTab(
+                                    setupConfig = setupConfig,
+                                    deadBatteryMode = deadBatteryMode,
+                                    onDeadBatteryModeSelected = { deadBatteryMode = it },
+                                    blinkRedBeforeLowBattery = blinkRedBeforeLowBattery,
+                                    onBlinkRedBeforeLowBatteryChange = {
+                                        blinkRedBeforeLowBattery = it
+                                    },
+                                    darkColorMode = darkColorMode,
+                                    onDarkColorModeChange = { darkColorMode = it },
+                                    onRecalibrateClick = {
+                                        selectedDeviceScreen = DeviceScreen.RecalibrationIntro
+                                    },
+                                    onDioptriesClick = {
+                                        selectedDeviceScreen = DeviceScreen.Dioptries
+                                    }
+                                )
+                            }
+
+                            DeviceScreen.RecalibrationIntro -> {
+                                RecalibrationIntroScreen(
+                                    darkMode = darkColorMode,
+                                    onStartClick = {
+                                        selectedDeviceScreen = DeviceScreen.Main
+                                    },
+                                    onBackClick = {
+                                        selectedDeviceScreen = DeviceScreen.Main
+                                    }
+                                )
+                            }
+
+
+                            DeviceScreen.Dioptries -> {
+                                DioptriesDeviceScreen(
+                                    darkMode = darkColorMode,
+                                    onBackClick = {
+                                        selectedDeviceScreen = DeviceScreen.Main
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             ManualTabs(
                 selectedTab = selectedTab,
                 darkMode = darkColorMode,
-                onTabSelected = { selectedTab = it }
+                onTabSelected = { tab ->
+                    selectedTab = tab
+
+                    if (tab != ManualTab.Device) {
+                        selectedDeviceScreen = DeviceScreen.Main
+                    }
+                }
             )
+        }
+    }
+}
 
-            when (selectedTab) {
-                ManualTab.Now -> {
-                    NowTab(
-                        setupConfig = setupConfig,
-                        selectedMode = selectedMode,
-                        darkMode = darkColorMode,
-                        onModeSelected = { selectedMode = it }
-                    )
-                }
+@Composable
+private fun ManualTopBanner() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp)
+            .background(Color.White)
+            .border(BorderStroke(1.dp, Color.Black))
+    ) {
+        Box(
+            modifier = Modifier
+                .width(72.dp)
+                .height(150.dp)
+                .align(Alignment.Center)
+                .rotate(-32f)
+                .background(Color(0x33FF1E1E))
+        )
 
-                ManualTab.Profiles -> {
-                    ProfilesTab(
-                        profiles = profiles,
-                        activeProfileId = selectedProfileId,
-                        darkMode = darkColorMode,
-                        onProfileClick = { profile ->
-                            selectedProfileId = profile.id
-                            onProfileSelected(profile)
-                        }
-                    )
-                }
+        Box(
+            modifier = Modifier
+                .width(58.dp)
+                .height(90.dp)
+                .align(Alignment.TopEnd)
+                .padding(top = 0.dp, end = 12.dp)
+                .rotate(-32f)
+                .clip(RoundedCornerShape(40.dp))
+                .background(Color(0xFFD4D4D4))
+        )
 
-                ManualTab.Device -> {
-                    DeviceTab(
-                        setupConfig = setupConfig,
-                        deadBatteryMode = deadBatteryMode,
-                        onDeadBatteryModeSelected = { deadBatteryMode = it },
-                        blinkRedBeforeLowBattery = blinkRedBeforeLowBattery,
-                        onBlinkRedBeforeLowBatteryChange = { blinkRedBeforeLowBattery = it },
-                        darkColorMode = darkColorMode,
-                        onDarkColorModeChange = { darkColorMode = it },
-                        onRecalibrateClick = onBackClick,
-                        onDioptriesClick = onBackClick
+        Box(
+            modifier = Modifier
+                .width(70.dp)
+                .height(44.dp)
+                .align(Alignment.BottomStart)
+                .padding(start = 0.dp, bottom = 6.dp)
+                .rotate(-32f)
+                .clip(RoundedCornerShape(40.dp))
+                .background(Color(0xFFDADADA))
+        )
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            for (i in -2..4) {
+                val startX = size.width * 0.15f + i * 76f
+
+                drawLine(
+                    color = Color(0xFFC8C8C8),
+                    start = Offset(startX, -30f),
+                    end = Offset(startX + 100f, size.height + 30f),
+                    strokeWidth = 4f,
+                    cap = StrokeCap.Round,
+                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                        floatArrayOf(7f, 11f),
+                        0f
                     )
-                }
+                )
             }
         }
+
+        SvgImage(
+            svgCode = manualBannerLogoSvg,
+            width = 116.dp,
+            height = 76.dp,
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(top = 2.dp)
+        )
     }
 }
 
@@ -270,9 +419,7 @@ private fun NowTab(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 InfoBox(
                     title = "Distance:",
                     value = "42 cm",
@@ -290,9 +437,7 @@ private fun NowTab(
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 InfoBox(
                     title = "Battery:",
                     value = "78 %",
@@ -325,9 +470,7 @@ private fun NowTab(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ModeButton(
                     text = "NEAR",
                     selected = selectedMode == ManualMode.Near,
@@ -361,8 +504,110 @@ private fun ProfilesTab(
     profiles: List<Profile>,
     activeProfileId: Int,
     darkMode: Boolean,
-    onProfileClick: (Profile) -> Unit
+    onProfileClick: (Profile) -> Unit,
+    onProfileEdit: (Profile) -> Unit
 ) {
+    var profileToEdit by remember { mutableStateOf<Profile?>(null) }
+
+    var editName by remember { mutableStateOf("") }
+    var editNearLeft by remember { mutableStateOf("") }
+    var editNearRight by remember { mutableStateOf("") }
+    var editFarLeft by remember { mutableStateOf("") }
+    var editFarRight by remember { mutableStateOf("") }
+
+    val selectedProfile = profileToEdit
+
+    if (selectedProfile != null) {
+        AlertDialog(
+            onDismissRequest = {
+                profileToEdit = null
+            },
+            title = {
+                Text(text = "Edit profile")
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = { Text(text = "Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = editNearLeft,
+                            onValueChange = { editNearLeft = it },
+                            label = { Text(text = "Near L") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        OutlinedTextField(
+                            value = editNearRight,
+                            onValueChange = { editNearRight = it },
+                            label = { Text(text = "Near R") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = editFarLeft,
+                            onValueChange = { editFarLeft = it },
+                            label = { Text(text = "Far L") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        OutlinedTextField(
+                            value = editFarRight,
+                            onValueChange = { editFarRight = it },
+                            label = { Text(text = "Far R") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val updatedProfile = selectedProfile.copy(
+                            name = editName.trim().ifBlank { selectedProfile.name },
+                            nearLeft = editNearLeft.trim().ifBlank { selectedProfile.nearLeft },
+                            nearRight = editNearRight.trim().ifBlank { selectedProfile.nearRight },
+                            farLeft = editFarLeft.trim().ifBlank { selectedProfile.farLeft },
+                            farRight = editFarRight.trim().ifBlank { selectedProfile.farRight }
+                        )
+
+                        onProfileEdit(updatedProfile)
+                        profileToEdit = null
+                    }
+                ) {
+                    Text(text = "Save")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        profileToEdit = null
+                    }
+                ) {
+                    Text(text = "Cancel")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -379,10 +624,6 @@ private fun ProfilesTab(
             )
 
             Spacer(modifier = Modifier.height(20.dp))
-
-            CreateProfileButton(darkMode = darkMode)
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
 
         DividerLine(darkMode = darkMode)
@@ -396,7 +637,17 @@ private fun ProfilesTab(
                     profile = profile,
                     active = profile.id == activeProfileId,
                     darkMode = darkMode,
-                    onClick = { onProfileClick(profile) }
+                    onClick = {
+                        onProfileClick(profile)
+                    },
+                    onEditClick = {
+                        editName = profile.name
+                        editNearLeft = profile.nearLeft
+                        editNearRight = profile.nearRight
+                        editFarLeft = profile.farLeft
+                        editFarRight = profile.farRight
+                        profileToEdit = profile
+                    }
                 )
             }
         }
@@ -420,7 +671,8 @@ private fun DeviceTab(
             .fillMaxSize()
             .background(bgColor(darkColorMode))
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 12.dp)
+            .padding(top = 12.dp, bottom = 32.dp)
     ) {
         DeviceCard(
             deviceName = setupConfig.bluetoothDeviceName.ifBlank { "VisionCore-A2FI" },
@@ -502,6 +754,155 @@ private fun DeviceTab(
             darkMode = darkColorMode,
             onCheckedChange = onDarkColorModeChange
         )
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun RecalibrationIntroScreen(
+    darkMode: Boolean,
+    onStartClick: () -> Unit,
+    onBackClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor(darkMode))
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "◀ Back",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = fgColor(darkMode),
+            modifier = Modifier.clickable { onBackClick() }
+        )
+
+        Text(
+            text = "Recalibrate head",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = fgColor(darkMode)
+        )
+
+        Text(
+            text = "Keep your head straight and look forward. Start calibration when the glasses are in the correct position.",
+            fontSize = 14.sp,
+            lineHeight = 22.sp,
+            color = fgColor(darkMode)
+        )
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        Button(
+            onClick = onStartClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(50.dp),
+            border = BorderStroke(2.dp, fgColor(darkMode)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = selectedBgColor(darkMode),
+                contentColor = selectedFgColor(darkMode)
+            )
+        ) {
+            Text(
+                text = "Start recalibration",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(50.dp),
+            border = BorderStroke(2.dp, fgColor(darkMode)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = bgColor(darkMode),
+                contentColor = fgColor(darkMode)
+            )
+        ) {
+            Text(
+                text = "Back to device",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun DioptriesDeviceScreen(
+    darkMode: Boolean,
+    onBackClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor(darkMode))
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "◀ Back",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = fgColor(darkMode),
+            modifier = Modifier.clickable { onBackClick() }
+        )
+
+        Text(
+            text = "Dioptries",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = fgColor(darkMode)
+        )
+
+        Text(
+            text = "Adjust or review the dioptry values used by the glasses.",
+            fontSize = 14.sp,
+            color = fgColor(darkMode)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        DeviceNavigationButton(
+            text = "Near values",
+            darkMode = darkMode,
+            onClick = {}
+        )
+
+        DeviceNavigationButton(
+            text = "Far values",
+            darkMode = darkMode,
+            onClick = {}
+        )
+
+        Button(
+            onClick = onBackClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(50.dp),
+            border = BorderStroke(2.dp, fgColor(darkMode)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = bgColor(darkMode),
+                contentColor = fgColor(darkMode)
+            )
+        ) {
+            Text(
+                text = "Back to device",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
@@ -513,11 +914,11 @@ private fun AutoToggleBadge(
         modifier = Modifier
             .clip(RoundedCornerShape(50.dp))
             .background(selectedBgColor(darkMode))
-            .padding(horizontal = 8.dp, vertical = 5.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "auto:",
+            text = "AUTO MODE:",
             color = selectedFgColor(darkMode),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold
@@ -526,9 +927,10 @@ private fun AutoToggleBadge(
         Spacer(modifier = Modifier.width(4.dp))
 
         Text(
-            text = "on",
+            text = "ON",
             color = selectedFgColor(darkMode),
-            fontSize = 10.sp
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -598,43 +1000,12 @@ private fun ModeButton(
 }
 
 @Composable
-private fun CreateProfileButton(
-    darkMode: Boolean
-) {
-    Button(
-        onClick = {},
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp),
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(2.dp, fgColor(darkMode)),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = bgColor(darkMode),
-            contentColor = fgColor(darkMode)
-        )
-    ) {
-        Text(
-            text = "☻",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.width(20.dp))
-
-        Text(
-            text = "Create new profile",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
 private fun ProfileRowCard(
     profile: Profile,
     active: Boolean,
     darkMode: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onEditClick: () -> Unit
 ) {
     val borderColor = if (profile.name.contains("Mum", ignoreCase = true)) {
         Color(0xFFFF1919)
@@ -681,31 +1052,41 @@ private fun ProfileRowCard(
                 )
 
                 Text(
-                    text = "NEAR  L/R ${profile.nearLeft}/${profile.nearRight}",
+                    text = "NEAR L/R ${profile.nearLeft}/${profile.nearRight}",
                     fontSize = 9.sp,
                     color = if (active) selectedFgColor(darkMode) else fgColor(darkMode)
                 )
 
                 Text(
-                    text = "FAR     L/R ${profile.farLeft}/${profile.farRight}",
+                    text = "FAR L/R ${profile.farLeft}/${profile.farRight}",
                     fontSize = 9.sp,
                     color = if (active) selectedFgColor(darkMode) else fgColor(darkMode)
                 )
             }
 
-            if (active) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (active) {
+                    Text(
+                        text = "ACTIVE",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = selectedFgColor(darkMode)
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
                 Text(
-                    text = "ACTIVE",
+                    text = "EDIT",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = selectedFgColor(darkMode)
-                )
-            } else {
-                Text(
-                    text = "▶",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = fgColor(darkMode)
+                    color = if (active) selectedFgColor(darkMode) else fgColor(darkMode),
+                    modifier = Modifier.clickable {
+                        onEditClick()
+                    }
                 )
             }
         }
@@ -797,8 +1178,8 @@ private fun DeviceOptionButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(38.dp)
-            .padding(bottom = 6.dp),
+            .height(56.dp)
+            .padding(bottom = 8.dp),
         shape = RoundedCornerShape(50.dp),
         border = BorderStroke(
             width = 2.dp,
@@ -808,7 +1189,7 @@ private fun DeviceOptionButton(
             containerColor = if (selected) selectedBgColor(darkMode) else bgColor(darkMode),
             contentColor = if (selected) selectedFgColor(darkMode) else fgColor(darkMode)
         ),
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp)
+        contentPadding = PaddingValues(horizontal = 22.dp, vertical = 0.dp)
     ) {
         Box(
             modifier = Modifier.fillMaxWidth(),
@@ -816,7 +1197,7 @@ private fun DeviceOptionButton(
         ) {
             Text(
                 text = text,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -833,15 +1214,15 @@ private fun DeviceNavigationButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(38.dp)
-            .padding(bottom = 6.dp),
+            .height(56.dp)
+            .padding(bottom = 8.dp),
         shape = RoundedCornerShape(50.dp),
         border = BorderStroke(2.dp, fgColor(darkMode)),
         colors = ButtonDefaults.buttonColors(
             containerColor = bgColor(darkMode),
             contentColor = fgColor(darkMode)
         ),
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp)
+        contentPadding = PaddingValues(horizontal = 22.dp, vertical = 0.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -849,14 +1230,14 @@ private fun DeviceNavigationButton(
         ) {
             Text(
                 text = text,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
 
             Text(
                 text = "▶",
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -874,8 +1255,8 @@ private fun DeviceSwitchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(38.dp)
-            .padding(bottom = 6.dp)
+            .height(56.dp)
+            .padding(bottom = 8.dp)
             .clip(RoundedCornerShape(50.dp))
             .background(bgColor(darkMode))
             .border(
@@ -883,12 +1264,12 @@ private fun DeviceSwitchRow(
                 color = if (highlighted) Color(0xFFFF1919) else fgColor(darkMode),
                 shape = RoundedCornerShape(50.dp)
             )
-            .padding(start = 18.dp, end = 8.dp),
+            .padding(start = 22.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = text,
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = fgColor(darkMode),
             modifier = Modifier.weight(1f)
@@ -897,7 +1278,7 @@ private fun DeviceSwitchRow(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            modifier = Modifier.size(width = 44.dp, height = 24.dp),
+            modifier = Modifier.size(width = 48.dp, height = 28.dp),
             colors = SwitchDefaults.colors(
                 checkedThumbColor = selectedFgColor(darkMode),
                 checkedTrackColor = selectedBgColor(darkMode),
@@ -919,6 +1300,44 @@ private fun DividerLine(
             .height(1.dp)
             .background(fgColor(darkMode))
     )
+}
+
+@Composable
+private fun SvgImage(
+    svgCode: String,
+    width: Dp,
+    height: Dp,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val widthPx = with(density) { width.roundToPx() }.coerceAtLeast(1)
+    val heightPx = with(density) { height.roundToPx() }.coerceAtLeast(1)
+
+    val imageBitmap = remember(svgCode, widthPx, heightPx) {
+        try {
+            val svg = SVG.getFromString(svgCode)
+            val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+            val canvas = AndroidCanvas(bitmap)
+
+            svg.setDocumentWidth(widthPx.toFloat())
+            svg.setDocumentHeight(heightPx.toFloat())
+            svg.renderToCanvas(canvas)
+
+            bitmap.asImageBitmap()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    imageBitmap?.let { bitmap ->
+        Image(
+            bitmap = bitmap,
+            contentDescription = contentDescription,
+            modifier = modifier.size(width, height),
+            contentScale = ContentScale.Fit
+        )
+    }
 }
 
 private fun ManualMode.label(): String {
@@ -968,3 +1387,25 @@ private fun defaultManualProfiles(): List<Profile> {
         )
     )
 }
+
+private val manualBannerLogoSvg = """
+<svg width="160" height="105" viewBox="0 20 160 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g filter="url(#filter0_i_6_34)">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M159.071 73.2908L118.885 64.3043L148.35 92.1486C132.611 106.94 106.659 106.464 90.3865 91.0866C74.1247 75.7187 73.6921 51.2414 89.4211 36.46C105.15 21.6785 131.123 22.1545 147.385 37.522C157.423 47.0089 161.828 60.4889 159.071 73.2908Z" fill="#FF1919"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M62.8418 25.6777L77.1582 102.644L0 76.6552L62.8418 25.6777Z" fill="#171717"/>
+<path d="M118.89 77.4979C126.576 77.4979 132.807 71.5909 132.807 64.3043C132.807 57.0177 126.576 51.1107 118.89 51.1107C111.204 51.1107 104.974 57.0177 104.974 64.3043C104.974 71.5909 111.204 77.4979 118.89 77.4979Z" fill="#272727"/>
+</g>
+<defs>
+<filter id="filter0_i_6_34" x="0" y="0" width="160" height="109" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="4"/>
+<feGaussianBlur stdDeviation="2"/>
+<feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+<feBlend mode="normal" in2="shape" result="effect1_innerShadow_6_34"/>
+</filter>
+</defs>
+</svg>
+""".trimIndent()

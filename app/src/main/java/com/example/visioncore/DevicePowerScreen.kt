@@ -10,16 +10,35 @@ import android.os.VibratorManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,7 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-data class CalibrationStepUi(
+ data class CalibrationStepUi(
     val title: String,
     val subtitle: String,
     val description: String,
@@ -57,7 +76,7 @@ fun DevicePowerScreen(
             CalibrationStepUi(
                 title = "Tilt Down",
                 subtitle = "Step 2 of 3",
-                description = "Like you're reading a book. Hold still.",
+                description = "Like you're reading a book.\nHold still.",
                 targetTilt = -30
             ),
             CalibrationStepUi(
@@ -75,18 +94,11 @@ fun DevicePowerScreen(
     var holdSeconds by remember { mutableStateOf(0.0) }
     var currentTilt by remember { mutableStateOf(-23) }
 
-    val completedSteps = remember {
-        mutableStateListOf<Int>()
-    }
-
+    val completedSteps = remember { mutableStateListOf<Int>() }
     val currentStep = steps[currentStepIndex]
     val currentStepCompleted = currentStepIndex in completedSteps
     val allCompleted = completedSteps.size == steps.size
 
-    /*
-     * TODO: Here we need to put real calibration function for the
-     *  device
-     */
     LaunchedEffect(currentStepIndex, stepStarted) {
         if (currentStepIndex in completedSteps) {
             isHolding = false
@@ -120,7 +132,9 @@ fun DevicePowerScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(horizontal = 22.dp, vertical = 28.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 22.dp, vertical = 28.dp)
+            .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Header(
@@ -155,10 +169,6 @@ fun DevicePowerScreen(
                     isCompleted = isCompleted,
                     showDescription = isActive,
                     onClick = {
-                        /*
-                         * Żeby użytkownik nie przeskakiwał do kolejnych kroków przed czasem,
-                         * pozwalamy kliknąć tylko aktualny krok albo kroki już ukończone.
-                         */
                         if (index == currentStepIndex || index in completedSteps) {
                             currentStepIndex = index
                             stepStarted = index in completedSteps
@@ -181,14 +191,12 @@ fun DevicePowerScreen(
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(24.dp))
 
         if (allCompleted) {
             ContinueButton(
                 text = "Continue",
-                onClick = {
-                    onCompleted()
-                }
+                onClick = onCompleted
             )
         } else {
             BottomActions(
@@ -198,9 +206,7 @@ fun DevicePowerScreen(
                     else -> "Start"
                 },
                 actionEnabled = !isHolding,
-                onSkipClick = {
-                    onSkipClick()
-                },
+                onSkipClick = onSkipClick,
                 onActionClick = {
                     when {
                         currentStepCompleted -> {
@@ -228,8 +234,7 @@ private fun playCalibrationFinishedFeedback(context: Context) {
 private fun vibrateShort(context: Context) {
     try {
         val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager =
-                context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
@@ -248,7 +253,7 @@ private fun vibrateShort(context: Context) {
             vibrator?.vibrate(300)
         }
     } catch (_: Exception) {
-        // Ignoring so no crash if vib is not possible
+        // Ignoring so no crash if vibration is not possible.
     }
 }
 
@@ -265,10 +270,9 @@ private fun playShortBeep() {
             try {
                 toneGenerator.release()
             } catch (_: Exception) {
-                // Ignoring release error
+                // Ignoring release error.
             }
         }, 350)
-
     } catch (_: Exception) {
         // Ignoring if no sound is accessible this way.
     }
@@ -312,12 +316,11 @@ private fun CalibrationStepCard(
 ) {
     val backgroundColor = if (isActive || isCompleted) Color.Black else Color.White
     val contentColor = if (isActive || isCompleted) Color.White else Color.Black
-    val borderColor = Color.Black
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(2.dp, borderColor, RoundedCornerShape(18.dp))
+            .border(2.dp, Color.Black, RoundedCornerShape(18.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
@@ -438,7 +441,9 @@ private fun BottomActions(
     onActionClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -461,7 +466,9 @@ private fun ContinueButton(
     onClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
         horizontalArrangement = Arrangement.Center
     ) {
         BlackPillButton(
@@ -480,14 +487,14 @@ private fun RedPillButton(
     Button(
         onClick = onClick,
         modifier = Modifier
-            .height(44.dp)
-            .width(118.dp),
+            .height(48.dp)
+            .width(128.dp),
         shape = RoundedCornerShape(50.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFFFF1919),
             contentColor = Color.Black
         ),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
     ) {
         Text(
             text = text,
@@ -515,8 +522,8 @@ private fun BlackPillButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier
-            .height(44.dp)
-            .width(118.dp),
+            .height(48.dp)
+            .width(128.dp),
         shape = RoundedCornerShape(50.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Black,
@@ -524,7 +531,7 @@ private fun BlackPillButton(
             disabledContainerColor = Color.Black.copy(alpha = 0.35f),
             disabledContentColor = Color.White
         ),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
     ) {
         Text(
             text = text,

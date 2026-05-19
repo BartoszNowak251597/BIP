@@ -40,9 +40,7 @@ fun VisionCoreApp() {
     var calibrationCompleted by rememberSaveable { mutableStateOf(false) }
     var settingsCompleted by rememberSaveable { mutableStateOf(false) }
 
-    var setupConfig by remember {
-        mutableStateOf(SetupConfig())
-    }
+    var setupConfig by remember { mutableStateOf(SetupConfig()) }
 
     fun saveSetupConfig() {
         val activeProfile = profiles.firstOrNull { it.id == activeProfileId }
@@ -55,11 +53,7 @@ fun VisionCoreApp() {
             farLeft = activeProfile?.farLeft ?: "-2.00",
             farRight = activeProfile?.farRight ?: "-2.00",
             calibrationCompleted = calibrationCompleted,
-            deadBatteryMode = if (settingsCompleted) {
-                "Configured"
-            } else {
-                "Stay in last mode"
-            }
+            deadBatteryMode = if (settingsCompleted) "Configured" else "Stay in last mode"
         )
     }
 
@@ -74,6 +68,18 @@ fun VisionCoreApp() {
             if (selectedProfileId == profileId) {
                 selectedProfileId = activeProfileId
             }
+        }
+    }
+
+    fun editProfile(profileId: Int, newName: String) {
+        val cleanedName = newName.trim()
+
+        if (cleanedName.isBlank()) return
+
+        val index = profiles.indexOfFirst { it.id == profileId }
+
+        if (index != -1) {
+            profiles[index] = profiles[index].copy(name = cleanedName)
         }
     }
 
@@ -118,7 +124,7 @@ fun VisionCoreApp() {
                         onManualOverrideClick = {
                             saveSetupConfig()
                             currentScreen = Screen.AllSet
-                            },
+                        },
                         onProfilesClick = { currentScreen = Screen.Profiles },
                         onPrescriptionClick = { currentScreen = Screen.Prescription },
                         onDevicePowerClick = { currentScreen = Screen.DevicePower },
@@ -144,9 +150,7 @@ fun VisionCoreApp() {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     BluetoothScreen(
                         onBackClick = { currentScreen = Screen.Dashboard },
-                        onConnected = {
-                            bluetoothCompleted = true
-                        },
+                        onConnected = { bluetoothCompleted = true },
                         onContinueClick = { currentScreen = Screen.Dashboard }
                     )
                 }
@@ -156,6 +160,13 @@ fun VisionCoreApp() {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     ManualOverrideScreen(
                         setupConfig = setupConfig,
+                        profiles = profiles,
+                        activeProfileId = activeProfileId,
+                        onProfileSelected = { profile ->
+                            activeProfileId = profile.id
+                            selectedProfileId = profile.id
+                            profileCompleted = true
+                        },
                         onBackClick = { currentScreen = Screen.Dashboard }
                     )
                 }
@@ -170,10 +181,14 @@ fun VisionCoreApp() {
                             activeProfileId = profile.id
                             selectedProfileId = profile.id
                             profileCompleted = true
-                            currentScreen = Screen.ProfileDetails
                         },
                         onAddProfileClick = { currentScreen = Screen.CreateProfile },
-                        onDeleteActiveProfileClick = { deleteProfile(activeProfileId) },
+                        onEditProfileClick = { profile, newName ->
+                            editProfile(profile.id, newName)
+                        },
+                        onDeleteProfileClick = { profile ->
+                            deleteProfile(profile.id)
+                        },
                         onContinueClick = {
                             profileCompleted = true
                             currentScreen = Screen.Dashboard
@@ -189,7 +204,6 @@ fun VisionCoreApp() {
                         onBackClick = { currentScreen = Screen.Profiles },
                         onAddProfile = { name, age ->
                             val finalName = name.ifBlank { "Unnamed profile" }
-
                             val newProfile = Profile(
                                 id = nextProfileId,
                                 name = "$finalName ($age)",
@@ -248,20 +262,15 @@ fun VisionCoreApp() {
                             calibrationCompleted = true
                             currentScreen = Screen.Dashboard
                         },
-                        onSkipClick = {
-                            currentScreen = Screen.Dashboard
-                        }
+                        onSkipClick = { currentScreen = Screen.Dashboard }
                     )
                 }
             }
+
             Screen.AllSet -> {
                 AllSetScreen(
-                    onBackClick = {
-                        currentScreen = Screen.Dashboard
-                    },
-                    onContinueClick = {
-                        currentScreen = Screen.ManualOverride
-                    }
+                    onBackClick = { currentScreen = Screen.Dashboard },
+                    onContinueClick = { currentScreen = Screen.ManualOverride }
                 )
             }
         }

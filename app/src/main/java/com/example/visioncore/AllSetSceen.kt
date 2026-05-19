@@ -5,7 +5,19 @@ import android.graphics.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -34,7 +46,8 @@ fun AllSetScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(horizontal = 28.dp, vertical = 28.dp),
+            .padding(horizontal = 28.dp, vertical = 28.dp)
+            .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
@@ -60,7 +73,7 @@ fun AllSetScreen(
         Spacer(modifier = Modifier.height(54.dp))
 
         Text(
-            text = "Your glasses are ready. Your profile and vision settings are all set, and you can start using them right away.",
+            text = "Your glasses are ready.\nYour profile and vision settings are all set, and you can start using them right away.",
             fontSize = 18.sp,
             lineHeight = 22.sp,
             modifier = Modifier.fillMaxWidth()
@@ -72,31 +85,38 @@ fun AllSetScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = onContinueClick,
+        Box(
             modifier = Modifier
-                .height(48.dp)
-                .width(170.dp),
-            shape = RoundedCornerShape(50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp)
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "Continue",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Button(
+                onClick = onContinueClick,
+                modifier = Modifier
+                    .height(48.dp)
+                    .width(170.dp),
+                shape = RoundedCornerShape(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Black,
+                    contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp)
+            ) {
+                Text(
+                    text = "Continue",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
-            Spacer(modifier = Modifier.width(26.dp))
+                Spacer(modifier = Modifier.width(26.dp))
 
-            Text(
-                text = "▶",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+                Text(
+                    text = "▶",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

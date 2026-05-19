@@ -55,7 +55,8 @@ fun ProfilesScreenPreview() {
                 activeProfileId = 1,
                 onProfileClick = {},
                 onAddProfileClick = {},
-                onDeleteActiveProfileClick = {},
+                onEditProfileClick = { _, _ -> },
+                onDeleteProfileClick = {},
                 onBackClick = {},
                 onContinueClick = {}
             )
@@ -63,6 +64,11 @@ fun ProfilesScreenPreview() {
     }
 }
 
+/*
+    Jeżeli po naszych zmianach nie używasz już osobnego ekranu ProfileDetailsScreen,
+    możesz ten preview usunąć. Zostawiam go tylko wtedy, jeśli plik ProfileDetailsScreen.kt
+    dalej istnieje w projekcie.
+*/
 @Preview(showBackground = true)
 @Composable
 fun ProfileDetailsScreenPreview() {
@@ -105,5 +111,27 @@ fun SettingsScreenPreview() {
                 onContinueClick = {}
             )
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DevicePowerScreenPreview() {
+    VisionCoreTheme {
+        AppBackground {
+            DevicePowerScreen(
+                onBackClick = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AllSetScreenPreview() {
+    VisionCoreTheme {
+        AllSetScreen(
+            onContinueClick = {}
+        )
     }
 }
