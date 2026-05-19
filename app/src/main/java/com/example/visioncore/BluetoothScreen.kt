@@ -1,7 +1,12 @@
 package com.example.visioncore
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -30,82 +35,69 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.caverock.androidsvg.SVG
-import kotlinx.coroutines.delay
-
-data class BluetoothDeviceUi(
-    val name: String,
-    val address: String,
-    val rssi: Int
-)
+import com.example.visioncore.bluetooth.BleDevice
+import com.example.visioncore.bluetooth.BluetoothDisabledException
+import com.example.visioncore.bluetooth.BluetoothRepository
+import com.example.visioncore.bluetooth.ConnectionState
+import kotlinx.coroutines.launch
 
 @Composable
 fun BluetoothScreen(
     modifier: Modifier = Modifier,
+    bluetoothRepository: BluetoothRepository,
     onBackClick: () -> Unit,
     onConnected: () -> Unit,
     onContinueClick: () -> Unit
 ) {
-    var isSearching by remember { mutableStateOf(false) }
-    var connectedDeviceAddress by remember { mutableStateOf<String?>(null) }
+    val connectionState by bluetoothRepository.connectionState.collectAsState()
+    val scannedDevices by bluetoothRepository.scannedDevices.collectAsState()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    val foundDevices = remember {
-        mutableStateListOf<BluetoothDeviceUi>()
+    val isSearching = connectionState == ConnectionState.Scanning
+    val isConnecting = connectionState == ConnectionState.Connecting
+    val isConnected = connectionState == ConnectionState.Connected
+
+    var connectingDevice by remember { mutableStateOf<BleDevice?>(null) }
+    var bluetoothError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(connectionState) {
+        if (connectionState == ConnectionState.Connected) {
+            onConnected()
+        }
     }
 
-    /*
-     * TODO: Here need to add bluetooth scanned devices
-     */
-    LaunchedEffect(isSearching) {
-        if (isSearching) {
-            delay(1800)
+    DisposableEffect(Unit) {
+        onDispose { bluetoothRepository.stopScan() }
+    }
 
-            if (isSearching) {
-                foundDevices.clear()
+    val requiredPermissions = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
 
-                foundDevices.add(
-                    BluetoothDeviceUi(
-                        name = "VisionCore-A2FI",
-                        address = "00:11:22:33:44:55",
-                        rssi = -42
-                    )
-                )
-
-                foundDevices.add(
-                    BluetoothDeviceUi(
-                        name = "VisionCore-B9K2",
-                        address = "00:11:22:33:44:66",
-                        rssi = -55
-                    )
-                )
-
-                foundDevices.add(
-                    BluetoothDeviceUi(
-                        name = "Unknown BLE Device",
-                        address = "00:11:22:33:44:77",
-                        rssi = -71
-                    )
-                )
-
-                foundDevices.add(
-                    BluetoothDeviceUi(
-                        name = "VisionCore-Test",
-                        address = "00:11:22:33:44:88",
-                        rssi = -63
-                    )
-                )
-
-                isSearching = false
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions.values.all { it }) {
+            try {
+                bluetoothRepository.startScan()
+            } catch (e: BluetoothDisabledException) {
+                bluetoothError = "Bluetooth is disabled"
             }
         } else {
-            /*
-             * TODO: Start searchin animation
-             */
+            bluetoothError = "Bluetooth permission required"
         }
     }
 
@@ -186,7 +178,7 @@ fun BluetoothScreen(
             Spacer(modifier = Modifier.width(6.dp))
 
             when {
-                foundDevices.isNotEmpty() || connectedDeviceAddress != null -> {
+                isConnected || scannedDevices.isNotEmpty() -> {
                     SvgImage(
                         svgCode = checkSvg,
                         width = 26.dp,
@@ -195,7 +187,7 @@ fun BluetoothScreen(
                     )
                 }
 
-                isSearching -> {
+                isSearching || isConnecting -> {
                     SvgImage(
                         svgCode = loaderSvg,
                         width = 24.dp,
@@ -233,29 +225,32 @@ fun BluetoothScreen(
                 .heightIn(min = 78.dp, max = 220.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (foundDevices.isEmpty()) {
+            if (scannedDevices.isEmpty()) {
                 item {
                     EmptyDeviceCard(
-                        isSearching = isSearching
+                        isSearching = isSearching || isConnecting
                     )
                 }
             }
 
             items(
-                items = foundDevices,
+                items = scannedDevices,
                 key = { device -> device.address }
             ) { device ->
                 DeviceCard(
                     device = device,
-                    connected = connectedDeviceAddress == device.address,
+                    connected = isConnected && connectingDevice?.address == device.address,
+                    connecting = isConnecting && connectingDevice?.address == device.address,
                     onConnectClick = {
-                        /*
-                         * TODO: Here call the real device (Now mock only ofc)
-                         */
-
-                        connectedDeviceAddress = device.address
-                        isSearching = false
-                        onConnected()
+                        scope.launch {
+                            connectingDevice = device
+                            try {
+                                bluetoothRepository.connect(device)
+                            } catch (e: BluetoothDisabledException) {
+                                bluetoothError = "Bluetooth is disabled"
+                                connectingDevice = null
+                            }
+                        }
                     }
                 )
             }
@@ -266,22 +261,25 @@ fun BluetoothScreen(
         Button(
             onClick = {
                 if (isSearching) {
-                    isSearching = false
-
-                    /*
-                     * TODO: stop scan here
-                     */
+                    bluetoothRepository.stopScan()
                 } else {
-                    connectedDeviceAddress = null
-                    foundDevices.clear()
-                    isSearching = true
-
-                    /*
-                     * TODO: Start scan here
-                     */
+                    bluetoothError = null
+                    connectingDevice = null
+                    val hasPermissions = requiredPermissions.all {
+                        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+                    }
+                    if (hasPermissions) {
+                        try {
+                            bluetoothRepository.startScan()
+                        } catch (e: BluetoothDisabledException) {
+                            bluetoothError = "Bluetooth is disabled"
+                        }
+                    } else {
+                        permissionLauncher.launch(requiredPermissions)
+                    }
                 }
             },
-            enabled = connectedDeviceAddress == null,
+            enabled = !isConnected && !isConnecting,
             modifier = Modifier
                 .fillMaxWidth(0.72f)
                 .height(44.dp),
@@ -304,20 +302,26 @@ fun BluetoothScreen(
 
         Text(
             text = when {
-                connectedDeviceAddress != null -> "Connected"
-                foundDevices.isNotEmpty() -> "Device found"
+                isConnected -> "Connected"
+                isConnecting -> "Connecting..."
+                scannedDevices.isNotEmpty() -> "Device found"
                 isSearching -> "Searching"
+                bluetoothError != null -> bluetoothError!!
                 else -> "Ready to search"
             },
             fontSize = 14.sp,
-            color = Color.Black
+            color = if (bluetoothError != null && !isConnected && !isSearching && !isConnecting) {
+                Color.Red
+            } else {
+                Color.Black
+            }
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = { if (connectedDeviceAddress != null) onContinueClick() },
-            enabled = connectedDeviceAddress != null,
+            onClick = { if (isConnected) onContinueClick() },
+            enabled = isConnected,
             modifier = Modifier
                 .fillMaxWidth(0.72f)
                 .height(48.dp),
@@ -388,8 +392,9 @@ private fun EmptyDeviceCard(
 
 @Composable
 private fun DeviceCard(
-    device: BluetoothDeviceUi,
+    device: BleDevice,
     connected: Boolean,
+    connecting: Boolean,
     onConnectClick: () -> Unit
 ) {
     Card(
@@ -417,40 +422,50 @@ private fun DeviceCard(
                 Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
-                    text = if (connected) {
-                        "Connected"
-                    } else {
-                        "Nearby ${device.rssi} DBM"
+                    text = when {
+                        connected -> "Connected"
+                        connecting -> "Connecting..."
+                        else -> "Nearby ${device.rssi} dBm"
                     },
                     fontSize = 11.sp,
                     color = Color.Black
                 )
             }
 
-            if (connected) {
-                Text(
-                    text = "connected",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            } else {
-                Button(
-                    onClick = onConnectClick,
-                    modifier = Modifier
-                        .height(32.dp)
-                        .clip(CircleShape),
-                    shape = CircleShape,
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Black,
-                        contentColor = Color.White
-                    )
-                ) {
+            when {
+                connected -> {
                     Text(
-                        text = "connect",
+                        text = "connected",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
+                }
+                connecting -> {
+                    Text(
+                        text = "connecting...",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                else -> {
+                    Button(
+                        onClick = onConnectClick,
+                        modifier = Modifier
+                            .height(32.dp)
+                            .clip(CircleShape),
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Black,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = "connect",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

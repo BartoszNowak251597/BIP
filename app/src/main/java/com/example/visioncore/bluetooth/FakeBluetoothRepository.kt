@@ -18,8 +18,8 @@ class FakeBluetoothRepository : BluetoothRepository {
     override val incomingData: Flow<ByteArray> = _incomingData
 
     private val fakeDevices = listOf(
-        BleDevice(name = "VisionCore-L1", address = "AA:BB:CC:DD:EE:01"),
-        BleDevice(name = "VisionCore-L2", address = "AA:BB:CC:DD:EE:02"),
+        BleDevice(name = "VisionCore-L1", address = "AA:BB:CC:DD:EE:01", rssi = -42),
+        BleDevice(name = "VisionCore-L2", address = "AA:BB:CC:DD:EE:02", rssi = -61),
     )
 
     override fun startScan() {

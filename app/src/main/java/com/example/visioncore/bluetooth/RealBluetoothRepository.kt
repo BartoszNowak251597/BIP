@@ -61,7 +61,7 @@ class RealBluetoothRepository(private val context: Context) : BluetoothRepositor
 
             // 4. Jeśli pakiet nie miał nazwy, ale miał nasz UUID, wiemy, że to VisionCore
             val finalName = rawName ?: "Losowa Nazwa"
-            val device = BleDevice(name = finalName, address = result.device.address)
+            val device = BleDevice(name = finalName, address = result.device.address, rssi = result.rssi)
 
             val current = _scannedDevices.value
             if (current.none { it.address == device.address }) {
