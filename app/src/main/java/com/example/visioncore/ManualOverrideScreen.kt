@@ -92,6 +92,8 @@ fun ManualOverrideScreen(
     profiles: List<Profile> = emptyList(),
     activeProfileId: Int = profiles.firstOrNull()?.id ?: 0,
     startOnProfilesTab: Boolean = false,
+    autoModeEnabled: Boolean = true,
+    onAutoModeChanged: (Boolean) -> Unit = {},
     onProfileSelected: (Profile) -> Unit = {},
     onProfileEdited: (Profile) -> Unit = {},
     onAddProfileClick: () -> Unit = {},
@@ -106,7 +108,6 @@ fun ManualOverrideScreen(
     }
 
     var selectedMode by remember { mutableStateOf(ManualMode.Near) }
-    var autoModeEnabled by remember { mutableStateOf(true) }
 
     var selectedProfileId by remember(activeProfileId) {
         mutableStateOf(activeProfileId)
@@ -144,9 +145,12 @@ fun ManualOverrideScreen(
                             selectedMode = selectedMode,
                             autoModeEnabled = autoModeEnabled,
                             darkMode = darkColorMode,
+                            onAutoModeClick = {
+                                onAutoModeChanged(true)
+                            },
                             onModeSelected = { mode ->
                                 selectedMode = mode
-                                autoModeEnabled = false
+                                onAutoModeChanged(false)
                             }
                         )
                     }
@@ -337,6 +341,7 @@ private fun NowTab(
     selectedMode: ManualMode,
     autoModeEnabled: Boolean,
     darkMode: Boolean,
+    onAutoModeClick: () -> Unit,
     onModeSelected: (ManualMode) -> Unit
 ) {
     Column(
@@ -369,7 +374,8 @@ private fun NowTab(
 
                 AutoToggleBadge(
                     autoModeEnabled = autoModeEnabled,
-                    darkMode = darkMode
+                    darkMode = darkMode,
+                    onClick = onAutoModeClick
                 )
             }
 
@@ -387,7 +393,7 @@ private fun NowTab(
                 )
 
                 Text(
-                    text = "1 sec ago",
+                    text = if (autoModeEnabled) "auto mode active" else "manual override active",
                     fontSize = 12.sp,
                     color = fgColor(darkMode)
                 )
@@ -454,7 +460,7 @@ private fun NowTab(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ModeButton(
                     text = "NEAR",
-                    selected = selectedMode == ManualMode.Near,
+                    selected = selectedMode == ManualMode.Near && !autoModeEnabled,
                     darkMode = darkMode,
                     onClick = { onModeSelected(ManualMode.Near) },
                     modifier = Modifier.weight(1f)
@@ -462,7 +468,7 @@ private fun NowTab(
 
                 ModeButton(
                     text = "FAR",
-                    selected = selectedMode == ManualMode.Far,
+                    selected = selectedMode == ManualMode.Far && !autoModeEnabled,
                     darkMode = darkMode,
                     onClick = { onModeSelected(ManualMode.Far) },
                     modifier = Modifier.weight(1f)
@@ -470,7 +476,7 @@ private fun NowTab(
 
                 ModeButton(
                     text = "OFF",
-                    selected = selectedMode == ManualMode.Off,
+                    selected = selectedMode == ManualMode.Off && !autoModeEnabled,
                     darkMode = darkMode,
                     onClick = { onModeSelected(ManualMode.Off) },
                     modifier = Modifier.weight(1f)
@@ -521,9 +527,7 @@ private fun ProfilesTab(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = editNearLeft,
                             onValueChange = { editNearLeft = it },
@@ -541,9 +545,7 @@ private fun ProfilesTab(
                         )
                     }
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = editFarLeft,
                             onValueChange = { editFarLeft = it },
@@ -790,12 +792,14 @@ private fun DeviceTab(
 @Composable
 private fun AutoToggleBadge(
     autoModeEnabled: Boolean,
-    darkMode: Boolean
+    darkMode: Boolean,
+    onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(50.dp))
             .background(selectedBgColor(darkMode))
+            .clickable { onClick() }
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

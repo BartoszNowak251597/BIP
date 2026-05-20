@@ -31,6 +31,10 @@ fun VisionCoreApp() {
     var currentScreen by rememberSaveable { mutableStateOf(Screen.Onboarding) }
     var setupConfig by remember { mutableStateOf(SetupConfig()) }
 
+    var autoModeEnabled by rememberSaveable {
+        mutableStateOf(true)
+    }
+
     var createProfileReturnScreen by rememberSaveable {
         mutableStateOf(Screen.Profiles)
     }
@@ -267,6 +271,10 @@ fun VisionCoreApp() {
                         profiles = profiles,
                         activeProfileId = activeProfileId,
                         startOnProfilesTab = manualOverrideStartOnProfilesTab,
+                        autoModeEnabled = autoModeEnabled,
+                        onAutoModeChanged = { enabled ->
+                            autoModeEnabled = enabled
+                        },
                         onAddProfileClick = {
                             createProfileReturnScreen = Screen.ManualOverride
                             manualOverrideStartOnProfilesTab = true
