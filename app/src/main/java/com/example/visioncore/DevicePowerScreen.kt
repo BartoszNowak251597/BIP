@@ -86,6 +86,7 @@ fun DevicePowerScreen(
     var isHolding by remember { mutableStateOf(false) }
     var holdSeconds by remember { mutableStateOf(0.0) }
     var captureError by remember { mutableStateOf(false) }
+    var frozenTilt by remember { mutableStateOf<Int?>(null) }
 
     val completedSteps = remember { mutableStateListOf<Int>() }
     val currentStep = steps[currentStepIndex]
@@ -113,6 +114,7 @@ fun DevicePowerScreen(
             holdSeconds = (it + 1) / 10.0
         }
 
+        frozenTilt = currentGlassesTilt
         isHolding = false
 
         if (currentStepIndex !in completedSteps) {
@@ -184,7 +186,7 @@ fun DevicePowerScreen(
 
             HoldStatusCard(
                 holdSeconds = holdSeconds,
-                currentTilt = currentGlassesTilt,
+                currentTilt = frozenTilt ?: currentGlassesTilt,
                 isHolding = isHolding,
                 stepStarted = stepStarted,
                 stepCompleted = currentStepCompleted,
@@ -213,11 +215,13 @@ fun DevicePowerScreen(
                             if (currentStepIndex < steps.lastIndex) {
                                 currentStepIndex += 1
                                 stepStarted = false
+                                frozenTilt = null
                             }
                         }
 
                         !stepStarted -> {
                             captureError = false
+                            frozenTilt = null
                             stepStarted = true
                         }
                     }
