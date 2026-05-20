@@ -70,18 +70,13 @@ fun DevicePowerScreen(
         listOf(
             CalibrationStepUi(
                 title = "Look straight ahead",
-                subtitle = "Step 1 of 3",
+                subtitle = "Step 1 of 2",
                 description = "Like you're looking into the distance"
             ),
             CalibrationStepUi(
                 title = "Tilt Down",
-                subtitle = "Step 2 of 3",
+                subtitle = "Step 2 of 2",
                 description = "Like you're reading a book.\nHold still."
-            ),
-            CalibrationStepUi(
-                title = "Look around",
-                subtitle = "Step 3 of 3",
-                description = "Slowly look from left to right."
             )
         )
     }
@@ -151,7 +146,7 @@ fun DevicePowerScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "3 short steps so the glasses know how you wear them.",
+            text = "2 short steps so the glasses know how you wear them.",
             fontSize = 12.sp,
             lineHeight = 15.sp,
             modifier = Modifier.fillMaxWidth()
