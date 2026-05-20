@@ -47,6 +47,10 @@ fun VisionCoreApp() {
         mutableStateOf(Screen.Dashboard)
     }
 
+    var bluetoothReturnScreen by rememberSaveable {
+        mutableStateOf(Screen.Dashboard)
+    }
+
     var manualOverrideStartOnProfilesTab by rememberSaveable {
         mutableStateOf(false)
     }
@@ -180,6 +184,33 @@ fun VisionCoreApp() {
         }
     }
 
+    fun returnFromBluetooth() {
+        currentScreen = when (bluetoothReturnScreen) {
+            Screen.ManualOverride -> {
+                manualOverrideStartOnProfilesTab = false
+                manualOverrideStartOnDeviceTab = true
+                Screen.ManualOverride
+            }
+
+            else -> {
+                goToDashboardOrAllSet()
+                return
+            }
+        }
+    }
+
+    fun goBackFromBluetooth() {
+        currentScreen = when (bluetoothReturnScreen) {
+            Screen.ManualOverride -> {
+                manualOverrideStartOnProfilesTab = false
+                manualOverrideStartOnDeviceTab = true
+                Screen.ManualOverride
+            }
+
+            else -> Screen.Dashboard
+        }
+    }
+
     fun deleteProfile(profileId: Int) {
         profiles.removeAll { it.id == profileId }
 
@@ -298,9 +329,13 @@ fun VisionCoreApp() {
             Screen.Dashboard -> Screen.Dashboard
             Screen.Onboarding -> Screen.Onboarding
 
+            Screen.Bluetooth -> {
+                goBackFromBluetooth()
+                return
+            }
+
             Screen.Profiles,
             Screen.Settings,
-            Screen.Bluetooth,
             Screen.ManualOverride,
             Screen.Prescription,
             Screen.DevicePower,
@@ -363,6 +398,9 @@ fun VisionCoreApp() {
                             currentScreen = Screen.Settings
                         },
                         onBluetoothClick = {
+                            bluetoothReturnScreen = Screen.Dashboard
+                            manualOverrideStartOnProfilesTab = false
+                            manualOverrideStartOnDeviceTab = false
                             currentScreen = Screen.Bluetooth
                         }
                     )
@@ -392,14 +430,22 @@ fun VisionCoreApp() {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     BluetoothScreen(
                         onBackClick = {
-                            currentScreen = Screen.Dashboard
+                            goBackFromBluetooth()
                         },
                         onConnected = {
+                            setupConfig = setupConfig.copy(
+                                bluetoothDeviceName = "VisionCore-A2FI"
+                            )
+
                             bluetoothCompleted = true
                         },
                         onContinueClick = {
+                            setupConfig = setupConfig.copy(
+                                bluetoothDeviceName = "VisionCore-A2FI"
+                            )
+
                             bluetoothCompleted = true
-                            goToDashboardOrAllSet()
+                            returnFromBluetooth()
                         }
                     )
                 }
@@ -423,6 +469,12 @@ fun VisionCoreApp() {
                             manualOverrideStartOnProfilesTab = true
                             manualOverrideStartOnDeviceTab = false
                             currentScreen = Screen.CreateProfile
+                        },
+                        onDeviceSettingsClick = {
+                            bluetoothReturnScreen = Screen.ManualOverride
+                            manualOverrideStartOnProfilesTab = false
+                            manualOverrideStartOnDeviceTab = true
+                            currentScreen = Screen.Bluetooth
                         },
                         onProfileSelected = { profile ->
                             activeProfileId = profile.id
@@ -448,8 +500,10 @@ fun VisionCoreApp() {
 
                             if (activeProfile != null) {
                                 editingProfileId = activeProfile.id
-                                pendingProfileName = extractProfileNameWithoutAgeRange(activeProfile.name)
-                                pendingProfileAge = extractAgeRangeFromProfileName(activeProfile.name)
+                                pendingProfileName =
+                                    extractProfileNameWithoutAgeRange(activeProfile.name)
+                                pendingProfileAge =
+                                    extractAgeRangeFromProfileName(activeProfile.name)
                             } else {
                                 editingProfileId = 0
                             }
@@ -621,11 +675,12 @@ fun VisionCoreApp() {
                             if (editingProfileId != 0) {
                                 currentScreen = Screen.CreateProfile
                             } else {
-                                currentScreen = if (prescriptionReturnScreen == Screen.ManualOverride) {
-                                    Screen.ManualOverride
-                                } else {
-                                    Screen.Dashboard
-                                }
+                                currentScreen =
+                                    if (prescriptionReturnScreen == Screen.ManualOverride) {
+                                        Screen.ManualOverride
+                                    } else {
+                                        Screen.Dashboard
+                                    }
                             }
                         },
                         onContinueClick = { nearLeft, nearRight, farLeft, farRight ->
@@ -661,11 +716,12 @@ fun VisionCoreApp() {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     DevicePowerScreen(
                         onBackClick = {
-                            currentScreen = if (devicePowerReturnScreen == Screen.ManualOverride) {
-                                Screen.ManualOverride
-                            } else {
-                                Screen.Dashboard
-                            }
+                            currentScreen =
+                                if (devicePowerReturnScreen == Screen.ManualOverride) {
+                                    Screen.ManualOverride
+                                } else {
+                                    Screen.Dashboard
+                                }
                         },
                         onCompleted = {
                             calibrationCompleted = true

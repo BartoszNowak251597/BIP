@@ -95,6 +95,7 @@ fun ManualOverrideScreen(
     onProfileSelected: (Profile) -> Unit = {},
     onProfileEdited: (Profile) -> Unit = {},
     onAddProfileClick: () -> Unit = {},
+    onDeviceSettingsClick: () -> Unit = {},
     onRecalibrateClick: () -> Unit = {},
     onDioptriesClick: () -> Unit = {},
     onBackClick: () -> Unit
@@ -185,6 +186,7 @@ fun ManualOverrideScreen(
                             },
                             darkColorMode = darkColorMode,
                             onDarkColorModeChange = { darkColorMode = it },
+                            onDeviceSettingsClick = onDeviceSettingsClick,
                             onRecalibrateClick = onRecalibrateClick,
                             onDioptriesClick = onDioptriesClick
                         )
@@ -593,9 +595,12 @@ private fun DeviceTab(
     onBlinkRedBeforeLowBatteryChange: (Boolean) -> Unit,
     darkColorMode: Boolean,
     onDarkColorModeChange: (Boolean) -> Unit,
+    onDeviceSettingsClick: () -> Unit,
     onRecalibrateClick: () -> Unit,
     onDioptriesClick: () -> Unit
 ) {
+    val deviceConnected = setupConfig.bluetoothDeviceName.isNotBlank()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -605,8 +610,15 @@ private fun DeviceTab(
             .padding(top = 16.dp, bottom = 48.dp)
     ) {
         DeviceCard(
-            deviceName = setupConfig.bluetoothDeviceName.ifBlank { "VisionCore-A2FI" },
-            darkMode = darkColorMode
+            deviceName = setupConfig.bluetoothDeviceName,
+            connected = deviceConnected,
+            firmware = if (deviceConnected) {
+                "Firmware 4.0.1"
+            } else {
+                "Tap gear to connect"
+            },
+            darkMode = darkColorMode,
+            onSettingsClick = onDeviceSettingsClick
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -686,6 +698,108 @@ private fun DeviceTab(
         )
 
         Spacer(modifier = Modifier.height(48.dp))
+    }
+}
+
+@Composable
+private fun DeviceCard(
+    deviceName: String,
+    connected: Boolean,
+    firmware: String,
+    darkMode: Boolean,
+    onSettingsClick: () -> Unit
+) {
+    val displayName = if (connected) {
+        deviceName
+    } else {
+        "No device connected"
+    }
+
+    val mainTextColor = if (connected) {
+        fgColor(darkMode)
+    } else {
+        Color.Gray
+    }
+
+    val secondaryTextColor = if (connected) {
+        fgColor(darkMode)
+    } else {
+        Color.Gray
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(78.dp),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(
+            width = 2.dp,
+            color = if (connected) fgColor(darkMode) else Color.Gray
+        ),
+        colors = CardDefaults.cardColors(containerColor = bgColor(darkMode)),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (connected) 6.dp else 0.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(bgColor(darkMode))
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(54.dp)
+                    .height(42.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "◀●",
+                    color = if (connected) Color(0xFFFF1919) else Color.Gray,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = displayName,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = mainTextColor
+                )
+
+                Text(
+                    text = if (connected) "Connected" else "Disconnected",
+                    fontSize = 10.sp,
+                    color = secondaryTextColor
+                )
+
+                Text(
+                    text = firmware,
+                    fontSize = 10.sp,
+                    color = secondaryTextColor
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, fgColor(darkMode), CircleShape)
+                    .clickable {
+                        onSettingsClick()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⚙",
+                    fontSize = 16.sp,
+                    color = fgColor(darkMode)
+                )
+            }
+        }
     }
 }
 
@@ -869,79 +983,6 @@ private fun ProfileRowCard(
                     modifier = Modifier.clickable {
                         onEditClick()
                     }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DeviceCard(
-    deviceName: String,
-    darkMode: Boolean
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(78.dp),
-        shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(2.dp, fgColor(darkMode)),
-        colors = CardDefaults.cardColors(containerColor = bgColor(darkMode)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(bgColor(darkMode))
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(54.dp)
-                    .height(42.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "◀●",
-                    color = Color(0xFFFF1919),
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = deviceName,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = fgColor(darkMode)
-                )
-
-                Text(
-                    text = "Connected",
-                    fontSize = 10.sp,
-                    color = fgColor(darkMode)
-                )
-
-                Text(
-                    text = "Firmware 4.0.1",
-                    fontSize = 10.sp,
-                    color = fgColor(darkMode)
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, fgColor(darkMode), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⚙",
-                    fontSize = 16.sp,
-                    color = fgColor(darkMode)
                 )
             }
         }
