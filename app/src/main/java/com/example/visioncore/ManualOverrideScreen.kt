@@ -89,6 +89,7 @@ fun ManualOverrideScreen(
     profiles: List<Profile> = emptyList(),
     activeProfileId: Int = profiles.firstOrNull()?.id ?: 0,
     startOnProfilesTab: Boolean = false,
+    startOnDeviceTab: Boolean = false,
     autoModeEnabled: Boolean = true,
     onAutoModeChanged: (Boolean) -> Unit = {},
     onProfileSelected: (Profile) -> Unit = {},
@@ -98,9 +99,13 @@ fun ManualOverrideScreen(
     onDioptriesClick: () -> Unit = {},
     onBackClick: () -> Unit
 ) {
-    var selectedTab by remember(startOnProfilesTab) {
+    var selectedTab by remember(startOnProfilesTab, startOnDeviceTab) {
         mutableStateOf(
-            if (startOnProfilesTab) ManualTab.Profiles else ManualTab.Now
+            when {
+                startOnDeviceTab -> ManualTab.Device
+                startOnProfilesTab -> ManualTab.Profiles
+                else -> ManualTab.Now
+            }
         )
     }
 

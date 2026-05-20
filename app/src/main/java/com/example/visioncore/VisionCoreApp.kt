@@ -43,7 +43,15 @@ fun VisionCoreApp() {
         mutableStateOf(Screen.Dashboard)
     }
 
+    var devicePowerReturnScreen by rememberSaveable {
+        mutableStateOf(Screen.Dashboard)
+    }
+
     var manualOverrideStartOnProfilesTab by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var manualOverrideStartOnDeviceTab by rememberSaveable {
         mutableStateOf(false)
     }
 
@@ -92,14 +100,68 @@ fun VisionCoreApp() {
         )
     }
 
+    fun getActiveProfile(): Profile? {
+        return profiles.firstOrNull { it.id == activeProfileId }
+    }
+
     fun updateSetupConfigFromActiveProfile(profile: Profile) {
         setupConfig = setupConfig.copy(
             activeProfileName = profile.name,
             nearLeft = profile.nearLeft,
             nearRight = profile.nearRight,
             farLeft = profile.farLeft,
-            farRight = profile.farRight
+            farRight = profile.farRight,
+            calibrationCompleted = profile.calibrationCompleted
         )
+    }
+
+    fun updateActiveProfileDioptries(
+        nearLeft: String,
+        nearRight: String,
+        farLeft: String,
+        farRight: String
+    ) {
+        val index = profiles.indexOfFirst { it.id == activeProfileId }
+
+        if (index != -1) {
+            val updatedProfile = profiles[index].copy(
+                nearLeft = nearLeft,
+                nearRight = nearRight,
+                farLeft = farLeft,
+                farRight = farRight
+            )
+
+            profiles[index] = updatedProfile
+            selectedProfileId = updatedProfile.id
+            activeProfileId = updatedProfile.id
+
+            updateSetupConfigFromActiveProfile(updatedProfile)
+            saveProfilesNow()
+        } else {
+            setupConfig = setupConfig.copy(
+                nearLeft = nearLeft,
+                nearRight = nearRight,
+                farLeft = farLeft,
+                farRight = farRight
+            )
+        }
+    }
+
+    fun markActiveProfileCalibrated() {
+        val index = profiles.indexOfFirst { it.id == activeProfileId }
+
+        if (index != -1) {
+            val updatedProfile = profiles[index].copy(
+                calibrationCompleted = true
+            )
+
+            profiles[index] = updatedProfile
+            selectedProfileId = updatedProfile.id
+            activeProfileId = updatedProfile.id
+
+            updateSetupConfigFromActiveProfile(updatedProfile)
+            saveProfilesNow()
+        }
     }
 
     fun isSetupCompleted(): Boolean {
@@ -186,6 +248,7 @@ fun VisionCoreApp() {
 
         if (returnScreen == Screen.ManualOverride) {
             manualOverrideStartOnProfilesTab = true
+            manualOverrideStartOnDeviceTab = false
         }
 
         currentScreen = Screen.CreateProfile
@@ -277,6 +340,7 @@ fun VisionCoreApp() {
                         settingsCompleted = settingsCompleted,
                         onManualOverrideClick = {
                             manualOverrideStartOnProfilesTab = false
+                            manualOverrideStartOnDeviceTab = false
                             currentScreen = Screen.ManualOverride
                         },
                         onProfilesClick = {
@@ -284,9 +348,15 @@ fun VisionCoreApp() {
                         },
                         onPrescriptionClick = {
                             editingProfileId = 0
+                            prescriptionReturnScreen = Screen.Dashboard
+                            manualOverrideStartOnProfilesTab = false
+                            manualOverrideStartOnDeviceTab = false
                             currentScreen = Screen.Prescription
                         },
                         onDevicePowerClick = {
+                            devicePowerReturnScreen = Screen.Dashboard
+                            manualOverrideStartOnProfilesTab = false
+                            manualOverrideStartOnDeviceTab = false
                             currentScreen = Screen.DevicePower
                         },
                         onSettingsClick = {
@@ -342,6 +412,7 @@ fun VisionCoreApp() {
                         profiles = profiles,
                         activeProfileId = activeProfileId,
                         startOnProfilesTab = manualOverrideStartOnProfilesTab,
+                        startOnDeviceTab = manualOverrideStartOnDeviceTab,
                         autoModeEnabled = autoModeEnabled,
                         onAutoModeChanged = { enabled ->
                             autoModeEnabled = enabled
@@ -350,6 +421,7 @@ fun VisionCoreApp() {
                             editingProfileId = 0
                             createProfileReturnScreen = Screen.ManualOverride
                             manualOverrideStartOnProfilesTab = true
+                            manualOverrideStartOnDeviceTab = false
                             currentScreen = Screen.CreateProfile
                         },
                         onProfileSelected = { profile ->
@@ -366,10 +438,25 @@ fun VisionCoreApp() {
                             )
                         },
                         onRecalibrateClick = {
+                            devicePowerReturnScreen = Screen.ManualOverride
+                            manualOverrideStartOnProfilesTab = false
+                            manualOverrideStartOnDeviceTab = true
                             currentScreen = Screen.DevicePower
                         },
                         onDioptriesClick = {
-                            editingProfileId = 0
+                            val activeProfile = getActiveProfile()
+
+                            if (activeProfile != null) {
+                                editingProfileId = activeProfile.id
+                                pendingProfileName = extractProfileNameWithoutAgeRange(activeProfile.name)
+                                pendingProfileAge = extractAgeRangeFromProfileName(activeProfile.name)
+                            } else {
+                                editingProfileId = 0
+                            }
+
+                            prescriptionReturnScreen = Screen.ManualOverride
+                            manualOverrideStartOnProfilesTab = false
+                            manualOverrideStartOnDeviceTab = true
                             currentScreen = Screen.Prescription
                         },
                         onBackClick = {
@@ -395,6 +482,7 @@ fun VisionCoreApp() {
                             editingProfileId = 0
                             createProfileReturnScreen = Screen.Profiles
                             manualOverrideStartOnProfilesTab = false
+                            manualOverrideStartOnDeviceTab = false
                             currentScreen = Screen.CreateProfile
                         },
                         onEditProfileClick = { profile, _ ->
@@ -533,7 +621,11 @@ fun VisionCoreApp() {
                             if (editingProfileId != 0) {
                                 currentScreen = Screen.CreateProfile
                             } else {
-                                currentScreen = Screen.Dashboard
+                                currentScreen = if (prescriptionReturnScreen == Screen.ManualOverride) {
+                                    Screen.ManualOverride
+                                } else {
+                                    Screen.Dashboard
+                                }
                             }
                         },
                         onContinueClick = { nearLeft, nearRight, farLeft, farRight ->
@@ -545,7 +637,7 @@ fun VisionCoreApp() {
                                     farRight = farRight
                                 )
                             } else {
-                                setupConfig = setupConfig.copy(
+                                updateActiveProfileDioptries(
                                     nearLeft = nearLeft,
                                     nearRight = nearRight,
                                     farLeft = farLeft,
@@ -553,7 +645,12 @@ fun VisionCoreApp() {
                                 )
 
                                 prescriptionCompleted = true
-                                goToDashboardOrAllSet()
+
+                                if (prescriptionReturnScreen == Screen.ManualOverride) {
+                                    currentScreen = Screen.ManualOverride
+                                } else {
+                                    goToDashboardOrAllSet()
+                                }
                             }
                         }
                     )
@@ -564,14 +661,26 @@ fun VisionCoreApp() {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     DevicePowerScreen(
                         onBackClick = {
-                            currentScreen = Screen.Dashboard
+                            currentScreen = if (devicePowerReturnScreen == Screen.ManualOverride) {
+                                Screen.ManualOverride
+                            } else {
+                                Screen.Dashboard
+                            }
                         },
                         onCompleted = {
                             calibrationCompleted = true
+
                             setupConfig = setupConfig.copy(
                                 calibrationCompleted = true
                             )
-                            goToDashboardOrAllSet()
+
+                            markActiveProfileCalibrated()
+
+                            if (devicePowerReturnScreen == Screen.ManualOverride) {
+                                currentScreen = Screen.ManualOverride
+                            } else {
+                                goToDashboardOrAllSet()
+                            }
                         }
                     )
                 }
@@ -585,6 +694,7 @@ fun VisionCoreApp() {
                         },
                         onContinueClick = {
                             manualOverrideStartOnProfilesTab = false
+                            manualOverrideStartOnDeviceTab = false
                             currentScreen = Screen.ManualOverride
                         }
                     )
@@ -617,7 +727,8 @@ private fun loadProfiles(context: Context): List<Profile> {
                         nearLeft = item.optString("nearLeft", "+1.50"),
                         nearRight = item.optString("nearRight", "+1.75"),
                         farLeft = item.optString("farLeft", "-2.00"),
-                        farRight = item.optString("farRight", "-2.25")
+                        farRight = item.optString("farRight", "-2.25"),
+                        calibrationCompleted = item.optBoolean("calibrationCompleted", false)
                     )
                 )
             }
@@ -644,6 +755,7 @@ private fun saveProfiles(
             put("nearRight", profile.nearRight)
             put("farLeft", profile.farLeft)
             put("farRight", profile.farRight)
+            put("calibrationCompleted", profile.calibrationCompleted)
         }
 
         jsonArray.put(item)
