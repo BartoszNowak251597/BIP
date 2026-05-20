@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -132,7 +131,6 @@ fun ManualOverrideScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(bgColor(darkColorMode))
-                .navigationBarsPadding()
         ) {
             ManualTopBanner()
 
@@ -325,7 +323,7 @@ private fun ManualTabButton(
 ) {
     Box(
         modifier = modifier
-            .height(54.dp)
+            .height(50.dp)
             .background(if (selected) selectedBgColor(darkMode) else bgColor(darkMode))
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -907,83 +905,127 @@ private fun ProfileRowCard(
     onClick: () -> Unit,
     onEditClick: () -> Unit
 ) {
-    val borderColor = fgColor(darkMode)
+    val cardBg = if (active) selectedBgColor(darkMode) else bgColor(darkMode)
+    val cardFg = if (active) selectedFgColor(darkMode) else fgColor(darkMode)
+    val inverseBg = if (active) selectedFgColor(darkMode) else selectedBgColor(darkMode)
+    val inverseFg = if (active) selectedBgColor(darkMode) else selectedFgColor(darkMode)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(74.dp)
+            .height(108.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(18.dp),
         border = BorderStroke(
             width = 2.dp,
-            color = borderColor
+            color = fgColor(darkMode)
         ),
         colors = CardDefaults.cardColors(
-            containerColor = if (active) selectedBgColor(darkMode) else bgColor(darkMode)
+            containerColor = cardBg
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (active) selectedBgColor(darkMode) else bgColor(darkMode))
-                .padding(horizontal = 14.dp),
+                .background(cardBg)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "♙",
-                fontSize = 24.sp,
-                color = if (active) selectedFgColor(darkMode) else fgColor(darkMode)
+                fontSize = 25.sp,
+                color = cardFg
             )
 
             Spacer(modifier = Modifier.width(14.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
                     text = profile.name,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (active) selectedFgColor(darkMode) else fgColor(darkMode)
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = cardFg
                 )
 
-                Text(
-                    text = "NEAR L/R ${profile.nearLeft}/${profile.nearRight}",
-                    fontSize = 9.sp,
-                    color = if (active) selectedFgColor(darkMode) else fgColor(darkMode)
-                )
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "FAR L/R ${profile.farLeft}/${profile.farRight}",
-                    fontSize = 9.sp,
-                    color = if (active) selectedFgColor(darkMode) else fgColor(darkMode)
+                    text = if (active) "ACTIVE PROFILE" else "TAP CARD TO SELECT",
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = cardFg
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "NEAR    L ${profile.nearLeft}    /    R ${profile.nearRight}",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = cardFg
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "FAR       L ${profile.farLeft}    /    R ${profile.farRight}",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = cardFg
                 )
             }
 
+            Spacer(modifier = Modifier.width(10.dp))
+
             Column(
-                horizontalAlignment = Alignment.End,
+                modifier = Modifier.width(76.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                if (active) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(30.dp)
+                        .clip(RoundedCornerShape(50.dp))
+                        .background(inverseBg),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = "ACTIVE",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = selectedFgColor(darkMode)
+                        text = if (active) "ACTIVE" else "SELECT",
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = inverseFg
                     )
-
-                    Spacer(modifier = Modifier.height(4.dp))
                 }
 
-                Text(
-                    text = "EDIT",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (active) selectedFgColor(darkMode) else fgColor(darkMode),
-                    modifier = Modifier.clickable {
-                        onEditClick()
-                    }
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = onEditClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(38.dp),
+                    shape = RoundedCornerShape(50.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = inverseBg
+                    ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = inverseBg,
+                        contentColor = inverseFg
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = "EDIT",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
             }
         }
     }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -42,6 +44,23 @@ fun DashboardScreen(
     onSettingsClick: () -> Unit,
     onBluetoothClick: () -> Unit
 ) {
+    val firstFourCompleted =
+        bluetoothCompleted &&
+                profileCompleted &&
+                prescriptionCompleted &&
+                calibrationCompleted
+
+    val allSetupCompleted = firstFourCompleted && settingsCompleted
+
+    val activeStep = when {
+        !bluetoothCompleted -> 1
+        !profileCompleted -> 2
+        !prescriptionCompleted -> 3
+        !calibrationCompleted -> 4
+        !settingsCompleted -> 5
+        else -> 0
+    }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = Color.White
@@ -57,7 +76,8 @@ fun DashboardScreen(
                 Text(
                     text = "◀",
                     fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF30313A)
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -65,7 +85,8 @@ fun DashboardScreen(
                 Text(
                     text = "Setting up",
                     fontSize = 35.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF30313A)
                 )
             }
 
@@ -76,6 +97,7 @@ fun DashboardScreen(
                 title = "Pair the glasses",
                 subtitle = "Bluetooth",
                 completed = bluetoothCompleted,
+                highlighted = activeStep == 1,
                 onClick = onBluetoothClick
             )
 
@@ -86,8 +108,7 @@ fun DashboardScreen(
                 title = "Add wearer profile",
                 subtitle = "Name, Age",
                 completed = profileCompleted,
-                highlighted = true,
-                showOpenButton = true,
+                highlighted = activeStep == 2,
                 onClick = onProfilesClick
             )
 
@@ -98,6 +119,7 @@ fun DashboardScreen(
                 title = "Enter your dioptries",
                 subtitle = "Near, Far",
                 completed = prescriptionCompleted,
+                highlighted = activeStep == 3,
                 onClick = onPrescriptionClick
             )
 
@@ -108,7 +130,7 @@ fun DashboardScreen(
                 title = "Calibrate head position",
                 subtitle = "Look ahead, look down",
                 completed = calibrationCompleted,
-                highlighted = true,
+                highlighted = activeStep == 4,
                 onClick = onDevicePowerClick
             )
 
@@ -119,6 +141,7 @@ fun DashboardScreen(
                 title = "Pick dead battery mode",
                 subtitle = "Optional",
                 completed = settingsCompleted,
+                highlighted = activeStep == 5,
                 onClick = onSettingsClick
             )
 
@@ -128,32 +151,57 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Button(
-                    onClick = onManualOverrideClick,
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth(.55f)
-                        .height(48.dp)
-                ) {
-                    Text(
-                        text = "Skip rest",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Text(
-                        text = "▶ ▶",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                SetupBottomButton(
+                    text = if (allSetupCompleted) "Continue" else "Skip rest",
+                    isPrimary = allSetupCompleted,
+                    enabled = firstFourCompleted,
+                    onClick = onManualOverrideClick
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun SetupBottomButton(
+    text: String,
+    isPrimary: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(50),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isPrimary) Color.Black else Color(0xFFFF1919),
+            contentColor = if (isPrimary) Color.White else Color.Black,
+            disabledContainerColor = if (isPrimary) {
+                Color.Black.copy(alpha = 0.35f)
+            } else {
+                Color(0xFFFF1919).copy(alpha = 0.35f)
+            },
+            disabledContentColor = if (isPrimary) {
+                Color.White
+            } else {
+                Color.Black.copy(alpha = 0.45f)
+            }
+        ),
+        modifier = Modifier
+            .fillMaxWidth(.55f)
+            .height(48.dp)
+    ) {
+        Text(
+            text = text,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Text(
+            text = if (isPrimary) "▶" else "▶ ▶",
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -164,7 +212,6 @@ fun SetupItem(
     subtitle: String,
     completed: Boolean = false,
     highlighted: Boolean = false,
-    showOpenButton: Boolean = false,
     onClick: () -> Unit
 ) {
     Surface(
@@ -179,26 +226,22 @@ fun SetupItem(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(
-                horizontal = 12.dp,
-                vertical = 14.dp
-            ),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(24.dp)
                     .clip(CircleShape)
-                    .background(
-                        if (completed) Color.Black else Color.White
-                    ),
+                    .background(if (completed) Color.Black else Color.White),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = if (completed) "✓" else "$number",
                     color = if (completed) Color.White else Color.Black,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center
                 )
             }
 
@@ -210,7 +253,8 @@ fun SetupItem(
                 Text(
                     text = title,
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF30313A)
                 )
 
                 Text(
@@ -220,26 +264,30 @@ fun SetupItem(
                 )
             }
 
-            if (showOpenButton) {
-                Button(
-                    onClick = onClick,
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Black
-                    ),
-                    modifier = Modifier.height(28.dp)
+            Button(
+                onClick = onClick,
+                shape = RoundedCornerShape(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Black,
+                    contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier
+                    .width(72.dp)
+                    .height(28.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Open",
                         fontSize = 10.sp,
-                        color = Color.White
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        textAlign = TextAlign.Center
                     )
                 }
-            } else {
-                Text(
-                    text = "▶",
-                    fontWeight = FontWeight.Bold
-                )
             }
         }
     }
