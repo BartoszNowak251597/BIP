@@ -206,7 +206,6 @@ fun DevicePowerScreen(
                     else -> "Start"
                 },
                 actionEnabled = !isHolding,
-                onSkipClick = onSkipClick,
                 onActionClick = {
                     when {
                         currentStepCompleted -> {
@@ -437,7 +436,6 @@ private fun HoldStatusCard(
 private fun BottomActions(
     actionText: String,
     actionEnabled: Boolean,
-    onSkipClick: () -> Unit,
     onActionClick: () -> Unit
 ) {
     Row(
@@ -447,11 +445,6 @@ private fun BottomActions(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RedPillButton(
-            text = "Skip",
-            onClick = onSkipClick
-        )
-
         BlackPillButton(
             text = actionText,
             enabled = actionEnabled,
