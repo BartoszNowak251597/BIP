@@ -61,7 +61,8 @@ fun DevicePowerScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
     onCompleted: () -> Unit = {},
-    onSkipClick: () -> Unit = {}
+    onSkipClick: () -> Unit = {},
+    onCaptureStep: suspend (stepIndex: Int) -> Boolean = { true }
 ) {
     val context = LocalContext.current
 
@@ -93,6 +94,7 @@ fun DevicePowerScreen(
     var isHolding by remember { mutableStateOf(false) }
     var holdSeconds by remember { mutableStateOf(0.0) }
     var currentTilt by remember { mutableStateOf(-23) }
+    var captureError by remember { mutableStateOf(false) }
 
     val completedSteps = remember { mutableStateListOf<Int>() }
     val currentStep = steps[currentStepIndex]
@@ -123,8 +125,16 @@ fun DevicePowerScreen(
         isHolding = false
 
         if (currentStepIndex !in completedSteps) {
-            completedSteps.add(currentStepIndex)
-            playCalibrationFinishedFeedback(context)
+            val ok = onCaptureStep(currentStepIndex)
+            if (ok) {
+                captureError = false
+                completedSteps.add(currentStepIndex)
+                playCalibrationFinishedFeedback(context)
+            } else {
+                captureError = true
+                stepStarted = false
+                holdSeconds = 0.0
+            }
         }
     }
 
@@ -187,7 +197,8 @@ fun DevicePowerScreen(
                 targetTilt = currentStep.targetTilt,
                 isHolding = isHolding,
                 stepStarted = stepStarted,
-                stepCompleted = currentStepCompleted
+                stepCompleted = currentStepCompleted,
+                captureError = captureError
             )
         }
 
@@ -216,6 +227,7 @@ fun DevicePowerScreen(
                         }
 
                         !stepStarted -> {
+                            captureError = false
                             stepStarted = true
                         }
                     }
@@ -377,7 +389,8 @@ private fun HoldStatusCard(
     targetTilt: Int,
     isHolding: Boolean,
     stepStarted: Boolean,
-    stepCompleted: Boolean
+    stepCompleted: Boolean,
+    captureError: Boolean = false
 ) {
     Card(
         modifier = Modifier
@@ -396,6 +409,7 @@ private fun HoldStatusCard(
             ) {
                 Text(
                     text = when {
+                        captureError -> "Not stable — try again"
                         stepCompleted -> "Step captured"
                         isHolding -> "Hold steady..."
                         !stepStarted -> "Ready to start"

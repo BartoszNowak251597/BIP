@@ -10,7 +10,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
@@ -769,6 +771,18 @@ fun VisionCoreApp() {
             Screen.DevicePower -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     DevicePowerScreen(
+                        onCaptureStep = { stepIndex ->
+                            if (bluetoothConnectionState != ConnectionState.Connected) {
+                                true
+                            } else {
+                                bluetoothRepository.sendBytes(byteArrayOf(0x04, stepIndex.toByte()))
+                                withTimeoutOrNull(3_000) {
+                                    bluetoothRepository.incomingData.first { bytes ->
+                                        bytes.size == 2 && bytes[0] == 0x04.toByte()
+                                    }
+                                }?.let { bytes -> bytes[1] == 0x01.toByte() } ?: false
+                            }
+                        },
                         onBackClick = {
                             currentScreen =
                                 if (devicePowerReturnScreen == Screen.ManualOverride) {

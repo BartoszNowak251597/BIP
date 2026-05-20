@@ -69,6 +69,19 @@ class CommandCallbacks: public BLECharacteristicCallbacks {
         Serial.println(label);
         // TODO: persist to flash here
 
+      } else if (cmd == 0x04 && value.length() == 2) {
+        // CALIBRATION_CAPTURE: phone asks glasses to record IMU angle for this step
+        uint8_t step = (uint8_t)value[1];
+        Serial.print("Calibration capture step: ");
+        Serial.println(step);
+
+        // TODO: read IMU angle here and store as reference for step
+
+        // Respond OK (0x01) — phone is waiting for this within 3 seconds
+        uint8_t response[2] = { 0x04, 0x01 };
+        pStateCharacteristic->setValue(response, 2);
+        pStateCharacteristic->notify();
+
       } else {
         Serial.print("Unknown command 0x");
         Serial.print(cmd, HEX);
