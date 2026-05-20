@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -913,7 +914,7 @@ private fun ProfileRowCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(108.dp)
+            .heightIn(min = 120.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(18.dp),
         border = BorderStroke(
@@ -932,6 +933,7 @@ private fun ProfileRowCard(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             Text(
                 text = "♙",
                 fontSize = 25.sp,
@@ -940,6 +942,7 @@ private fun ProfileRowCard(
 
             Spacer(modifier = Modifier.width(14.dp))
 
+            // ===== CENTER CONTENT =====
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -948,7 +951,8 @@ private fun ProfileRowCard(
                     text = profile.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = cardFg
+                    color = cardFg,
+                    maxLines = 1
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -957,35 +961,80 @@ private fun ProfileRowCard(
                     text = if (active) "ACTIVE PROFILE" else "TAP CARD TO SELECT",
                     fontSize = 8.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = cardFg
+                    color = cardFg,
+                    maxLines = 1
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                Text(
-                    text = "NEAR    L ${profile.nearLeft}    /    R ${profile.nearRight}",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = cardFg
-                )
+                // ===== NEAR (FIXED) =====
+                Row {
+                    Text(
+                        text = "NEAR",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = cardFg
+                    )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                Text(
-                    text = "FAR       L ${profile.farLeft}    /    R ${profile.farRight}",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = cardFg
-                )
+                    Text(
+                        text = "L ${profile.nearLeft}",
+                        fontSize = 10.sp,
+                        color = cardFg,
+                        maxLines = 1
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Text(
+                        text = "R ${profile.nearRight}",
+                        fontSize = 10.sp,
+                        color = cardFg,
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(3.dp))
+
+                // ===== FAR (FIXED) =====
+                Row {
+                    Text(
+                        text = "FAR",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = cardFg
+                    )
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Text(
+                        text = "L ${profile.farLeft}",
+                        fontSize = 10.sp,
+                        color = cardFg,
+                        maxLines = 1
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Text(
+                        text = "R ${profile.farRight}",
+                        fontSize = 10.sp,
+                        color = cardFg,
+                        maxLines = 1
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(10.dp))
 
+            // ===== RIGHT PANEL =====
             Column(
                 modifier = Modifier.width(76.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -998,7 +1047,8 @@ private fun ProfileRowCard(
                         text = if (active) "ACTIVE" else "SELECT",
                         fontSize = 8.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = inverseFg
+                        color = inverseFg,
+                        maxLines = 1
                     )
                 }
 
@@ -1023,7 +1073,8 @@ private fun ProfileRowCard(
                     Text(
                         text = "EDIT",
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1
                     )
                 }
             }
