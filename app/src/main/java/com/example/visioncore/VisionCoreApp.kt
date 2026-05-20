@@ -48,7 +48,7 @@ fun VisionCoreApp() {
     val appSettings = remember { loadAppSettings(context) }
 
     var currentScreen by rememberSaveable {
-        mutableStateOf(if (appSettings.setupDone) Screen.Dashboard else Screen.Onboarding)
+        mutableStateOf(Screen.Onboarding)
     }
     var setupConfig by remember {
         mutableStateOf(SetupConfig(deadBatteryMode = appSettings.deadBatteryMode))
@@ -114,6 +114,7 @@ fun VisionCoreApp() {
 
     val activeProfile = profiles.firstOrNull { it.id == activeProfileId }
     var pendingDeadBatterySync by rememberSaveable { mutableStateOf(false) }
+    var wasConnected by remember { mutableStateOf(false) }
 
     var currentGlassesTilt by remember { mutableStateOf(0) }
 
@@ -129,17 +130,27 @@ fun VisionCoreApp() {
         }
     }
 
-    // On connect: send prescription + mode, and flush any pending dead battery config
+    // On connect: send full config. On disconnect: reset bluetooth step.
     LaunchedEffect(bluetoothConnectionState) {
-        if (bluetoothConnectionState == ConnectionState.Connected) {
-            profiles.firstOrNull { it.id == activeProfileId }?.let {
-                bluetoothRepository.sendBytes(it.toPrescriptionBytes())
+        when (bluetoothConnectionState) {
+            ConnectionState.Connected -> {
+                wasConnected = true
+                profiles.firstOrNull { it.id == activeProfileId }?.let {
+                    bluetoothRepository.sendBytes(it.toPrescriptionBytes())
+                }
+                bluetoothRepository.sendBytes(autoModeEnabled.toModeBytes())
+                if (pendingDeadBatterySync) {
+                    bluetoothRepository.sendBytes(setupConfig.deadBatteryMode.toDeadBatteryBytes())
+                    pendingDeadBatterySync = false
+                }
             }
-            bluetoothRepository.sendBytes(autoModeEnabled.toModeBytes())
-            if (pendingDeadBatterySync) {
-                bluetoothRepository.sendBytes(setupConfig.deadBatteryMode.toDeadBatteryBytes())
-                pendingDeadBatterySync = false
+            ConnectionState.Disconnected -> {
+                if (wasConnected) {
+                    bluetoothCompleted = false
+                    wasConnected = false
+                }
             }
+            else -> {}
         }
     }
 
@@ -410,8 +421,9 @@ fun VisionCoreApp() {
             Screen.ManualOverride,
             Screen.Prescription,
             Screen.DevicePower,
-            Screen.ProfileDetails,
             Screen.AllSet -> Screen.Dashboard
+
+            Screen.ProfileDetails -> Screen.Profiles
 
             Screen.CreateProfile -> createProfileReturnScreen
         }
@@ -514,11 +526,8 @@ fun VisionCoreApp() {
                         onBackClick = {
                             goBackFromBluetooth()
                         },
-                        onConnected = {
-                            setupConfig = setupConfig.copy(
-                                bluetoothDeviceName = "VisionCore-A2FI"
-                            )
-
+                        onConnected = { deviceName ->
+                            setupConfig = setupConfig.copy(bluetoothDeviceName = deviceName)
                             bluetoothCompleted = true
                         },
                         onContinueClick = {
@@ -542,6 +551,8 @@ fun VisionCoreApp() {
                         startOnProfilesTab = manualOverrideStartOnProfilesTab,
                         startOnDeviceTab = manualOverrideStartOnDeviceTab,
                         autoModeEnabled = autoModeEnabled,
+                        isConnected = bluetoothConnectionState == ConnectionState.Connected,
+                        currentGlassesTilt = currentGlassesTilt,
                         onAutoModeChanged = { enabled ->
                             autoModeEnabled = enabled
                             savePref(context, KEY_AUTO_MODE_ENABLED, enabled)
@@ -851,6 +862,9 @@ fun VisionCoreApp() {
                         onCompleted = {
                             calibrationCompleted = true
                             savePref(context, KEY_CALIBRATION_COMPLETED, true)
+                            if (bluetoothConnectionState == ConnectionState.Connected) {
+                                scope.launch { bluetoothRepository.sendBytes(byteArrayOf(0x04, 0x02)) }
+                            }
 
                             setupConfig = setupConfig.copy(
                                 calibrationCompleted = true

@@ -54,7 +54,7 @@ fun BluetoothScreen(
     modifier: Modifier = Modifier,
     bluetoothRepository: BluetoothRepository,
     onBackClick: () -> Unit,
-    onConnected: () -> Unit,
+    onConnected: (deviceName: String) -> Unit,
     onContinueClick: () -> Unit
 ) {
     val connectionState by bluetoothRepository.connectionState.collectAsState()
@@ -71,7 +71,7 @@ fun BluetoothScreen(
 
     LaunchedEffect(connectionState) {
         if (connectionState == ConnectionState.Connected) {
-            onConnected()
+            onConnected(connectingDevice?.name ?: "VisionCore")
         }
     }
 

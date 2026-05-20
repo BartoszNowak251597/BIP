@@ -70,14 +70,23 @@ class CommandCallbacks: public BLECharacteristicCallbacks {
         // TODO: persist to flash here
 
       } else if (cmd == 0x04 && value.length() == 2) {
-        // CALIBRATION_CAPTURE: phone asks glasses to record IMU angle for this step
         uint8_t step = (uint8_t)value[1];
-        Serial.print("Calibration capture step: ");
-        Serial.println(step);
 
-        // TODO: read IMU angle here and store as reference for step
+        if (step == 0x00) {
+          // Capture far/straight-ahead reference
+          // TODO: progGlowaWysoko = readIMU_angleY();
+          Serial.println("Calib: far reference captured");
+        } else if (step == 0x01) {
+          // Capture near/tilt-down reference
+          // TODO: progGlowaNisko = readIMU_angleY();
+          Serial.println("Calib: near reference captured");
+        } else if (step == 0x02) {
+          // All steps done — compute threshold
+          // TODO: threshold = (progGlowaWysoko + progGlowaNisko) / 2.0f;
+          Serial.println("Calib: threshold computed");
+        }
 
-        // Respond OK (0x01) — phone is waiting for this within 3 seconds
+        // Respond OK — phone is waiting within 3 seconds
         uint8_t response[2] = { 0x04, 0x01 };
         pStateCharacteristic->setValue(response, 2);
         pStateCharacteristic->notify();

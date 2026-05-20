@@ -91,6 +91,8 @@ fun ManualOverrideScreen(
     startOnProfilesTab: Boolean = false,
     startOnDeviceTab: Boolean = false,
     autoModeEnabled: Boolean = true,
+    isConnected: Boolean = false,
+    currentGlassesTilt: Int = 0,
     onAutoModeChanged: (Boolean) -> Unit = {},
     onProfileSelected: (Profile) -> Unit = {},
     onProfileEdited: (Profile) -> Unit = {},
@@ -149,6 +151,7 @@ fun ManualOverrideScreen(
                             setupConfig = setupConfig,
                             selectedMode = selectedMode,
                             autoModeEnabled = autoModeEnabled,
+                            currentGlassesTilt = currentGlassesTilt,
                             darkMode = darkColorMode,
                             onAutoModeClick = {
                                 onAutoModeChanged(true)
@@ -184,6 +187,7 @@ fun ManualOverrideScreen(
                     ManualTab.Device -> {
                         DeviceTab(
                             setupConfig = setupConfig,
+                            isConnected = isConnected,
                             deadBatteryMode = deadBatteryMode,
                             onDeadBatteryModeSelected = {
                             deadBatteryMode = it
@@ -353,6 +357,7 @@ private fun NowTab(
     setupConfig: SetupConfig,
     selectedMode: ManualMode,
     autoModeEnabled: Boolean,
+    currentGlassesTilt: Int = 0,
     darkMode: Boolean,
     onAutoModeClick: () -> Unit,
     onModeSelected: (ManualMode) -> Unit
@@ -430,7 +435,7 @@ private fun NowTab(
 
                 InfoBox(
                     title = "Tilt:",
-                    value = "-24",
+                    value = "${currentGlassesTilt}°",
                     selected = false,
                     darkMode = darkMode,
                     modifier = Modifier.weight(1f)
@@ -602,6 +607,7 @@ private fun ProfilesTab(
 @Composable
 private fun DeviceTab(
     setupConfig: SetupConfig,
+    isConnected: Boolean = false,
     deadBatteryMode: String,
     onDeadBatteryModeSelected: (String) -> Unit,
     blinkRedBeforeLowBattery: Boolean,
@@ -612,7 +618,6 @@ private fun DeviceTab(
     onRecalibrateClick: () -> Unit,
     onDioptriesClick: () -> Unit
 ) {
-    val deviceConnected = setupConfig.bluetoothDeviceName.isNotBlank()
 
     Column(
         modifier = Modifier
@@ -624,8 +629,8 @@ private fun DeviceTab(
     ) {
         DeviceCard(
             deviceName = setupConfig.bluetoothDeviceName,
-            connected = deviceConnected,
-            firmware = if (deviceConnected) {
+            connected = isConnected,
+            firmware = if (isConnected) {
                 "Firmware 4.0.1"
             } else {
                 "Tap gear to connect"
