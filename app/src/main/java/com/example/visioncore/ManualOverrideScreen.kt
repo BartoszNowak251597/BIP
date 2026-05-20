@@ -60,7 +60,7 @@ private enum class ManualTab {
     Device
 }
 
-private enum class ManualMode {
+enum class ManualMode {
     Near,
     Far,
     Off
@@ -99,6 +99,8 @@ fun ManualOverrideScreen(
     onDeviceSettingsClick: () -> Unit = {},
     onRecalibrateClick: () -> Unit = {},
     onDioptriesClick: () -> Unit = {},
+    onDeadBatteryModeChanged: (String) -> Unit = {},
+    onManualModeSelected: (ManualMode) -> Unit = {},
     onBackClick: () -> Unit
 ) {
     var selectedTab by remember(startOnProfilesTab, startOnDeviceTab) {
@@ -154,6 +156,7 @@ fun ManualOverrideScreen(
                             onModeSelected = { mode ->
                                 selectedMode = mode
                                 onAutoModeChanged(false)
+                                onManualModeSelected(mode)
                             }
                         )
                     }
@@ -182,7 +185,10 @@ fun ManualOverrideScreen(
                         DeviceTab(
                             setupConfig = setupConfig,
                             deadBatteryMode = deadBatteryMode,
-                            onDeadBatteryModeSelected = { deadBatteryMode = it },
+                            onDeadBatteryModeSelected = {
+                            deadBatteryMode = it
+                            onDeadBatteryModeChanged(it)
+                        },
                             blinkRedBeforeLowBattery = blinkRedBeforeLowBattery,
                             onBlinkRedBeforeLowBatteryChange = {
                                 blinkRedBeforeLowBattery = it

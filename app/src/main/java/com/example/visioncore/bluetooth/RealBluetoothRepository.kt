@@ -34,7 +34,7 @@ class RealBluetoothRepository(private val context: Context) : BluetoothRepositor
 
     // SharedFlow is used here instead of StateFlow because incoming data is a stream of events,
     // not a single value with a current state — we don't want new subscribers to replay old bytes
-    private val _incomingData = MutableSharedFlow<ByteArray>()
+    private val _incomingData = MutableSharedFlow<ByteArray>(extraBufferCapacity = 16)
     override val incomingData: Flow<ByteArray> = _incomingData
 
     // BluetoothGatt represents an active connection to a device.

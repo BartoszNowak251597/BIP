@@ -31,6 +31,12 @@ private const val PREFS_NAME = "vision_core_profiles_v2"
 private const val KEY_PROFILES = "profiles"
 private const val KEY_NEXT_PROFILE_ID = "next_profile_id"
 private const val KEY_ACTIVE_PROFILE_ID = "active_profile_id"
+private const val KEY_PRESCRIPTION_COMPLETED = "prescription_completed"
+private const val KEY_CALIBRATION_COMPLETED = "calibration_completed"
+private const val KEY_SETTINGS_COMPLETED = "settings_completed"
+private const val KEY_DEAD_BATTERY_MODE = "dead_battery_mode"
+private const val KEY_AUTO_MODE_ENABLED = "auto_mode_enabled"
+private const val KEY_SETUP_DONE = "setup_done"
 
 @Composable
 fun VisionCoreApp() {
@@ -39,11 +45,17 @@ fun VisionCoreApp() {
     val bluetoothConnectionState by bluetoothRepository.connectionState.collectAsState()
     val scope = rememberCoroutineScope()
 
-    var currentScreen by rememberSaveable { mutableStateOf(Screen.Onboarding) }
-    var setupConfig by remember { mutableStateOf(SetupConfig()) }
+    val appSettings = remember { loadAppSettings(context) }
+
+    var currentScreen by rememberSaveable {
+        mutableStateOf(if (appSettings.setupDone) Screen.Dashboard else Screen.Onboarding)
+    }
+    var setupConfig by remember {
+        mutableStateOf(SetupConfig(deadBatteryMode = appSettings.deadBatteryMode))
+    }
 
     var autoModeEnabled by rememberSaveable {
-        mutableStateOf(true)
+        mutableStateOf(appSettings.autoModeEnabled)
     }
 
     var createProfileReturnScreen by rememberSaveable {
@@ -103,6 +115,20 @@ fun VisionCoreApp() {
     val activeProfile = profiles.firstOrNull { it.id == activeProfileId }
     var pendingDeadBatterySync by rememberSaveable { mutableStateOf(false) }
 
+    var currentGlassesTilt by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        bluetoothRepository.incomingData.collect { bytes ->
+            if (bytes.size > 4) {
+                val text = try { String(bytes, Charsets.UTF_8) } catch (_: Exception) { return@collect }
+                if (text.startsWith("X:")) {
+                    val y = text.substringAfter("Y:", "").trim().toFloatOrNull()
+                    if (y != null) currentGlassesTilt = y.toInt()
+                }
+            }
+        }
+    }
+
     // On connect: send prescription + mode, and flush any pending dead battery config
     LaunchedEffect(bluetoothConnectionState) {
         if (bluetoothConnectionState == ConnectionState.Connected) {
@@ -133,9 +159,9 @@ fun VisionCoreApp() {
 
     var bluetoothCompleted by rememberSaveable { mutableStateOf(false) }
     var profileCompleted by rememberSaveable { mutableStateOf(profiles.isNotEmpty()) }
-    var prescriptionCompleted by rememberSaveable { mutableStateOf(false) }
-    var calibrationCompleted by rememberSaveable { mutableStateOf(false) }
-    var settingsCompleted by rememberSaveable { mutableStateOf(false) }
+    var prescriptionCompleted by rememberSaveable { mutableStateOf(appSettings.prescriptionCompleted) }
+    var calibrationCompleted by rememberSaveable { mutableStateOf(appSettings.calibrationCompleted) }
+    var settingsCompleted by rememberSaveable { mutableStateOf(appSettings.settingsCompleted) }
 
     fun saveProfilesNow() {
         saveProfiles(
@@ -219,6 +245,9 @@ fun VisionCoreApp() {
     }
 
     fun goToDashboardOrAllSet() {
+        if (isSetupCompleted()) {
+            savePref(context, KEY_SETUP_DONE, true)
+        }
         currentScreen = if (isSetupCompleted()) {
             Screen.AllSet
         } else {
@@ -470,6 +499,8 @@ fun VisionCoreApp() {
                             }
 
                             settingsCompleted = true
+                            savePref(context, KEY_SETTINGS_COMPLETED, true)
+                            savePref(context, KEY_DEAD_BATTERY_MODE, selectedDeadBatteryMode)
                             goToDashboardOrAllSet()
                         }
                     )
@@ -513,6 +544,7 @@ fun VisionCoreApp() {
                         autoModeEnabled = autoModeEnabled,
                         onAutoModeChanged = { enabled ->
                             autoModeEnabled = enabled
+                            savePref(context, KEY_AUTO_MODE_ENABLED, enabled)
                         },
                         onAddProfileClick = {
                             editingProfileId = 0
@@ -568,6 +600,29 @@ fun VisionCoreApp() {
                             manualOverrideStartOnProfilesTab = false
                             manualOverrideStartOnDeviceTab = true
                             currentScreen = Screen.Prescription
+                        },
+                        onDeadBatteryModeChanged = { mode ->
+                            setupConfig = setupConfig.copy(deadBatteryMode = mode)
+                            savePref(context, KEY_DEAD_BATTERY_MODE, mode)
+                            if (bluetoothConnectionState == ConnectionState.Connected) {
+                                scope.launch {
+                                    bluetoothRepository.sendBytes(mode.toDeadBatteryBytes())
+                                }
+                            } else {
+                                pendingDeadBatterySync = true
+                            }
+                        },
+                        onManualModeSelected = { mode ->
+                            if (bluetoothConnectionState == ConnectionState.Connected) {
+                                val position: Byte = when (mode) {
+                                    ManualMode.Near -> 0x00
+                                    ManualMode.Far  -> 0x01
+                                    ManualMode.Off  -> 0x02
+                                }
+                                scope.launch {
+                                    bluetoothRepository.sendBytes(byteArrayOf(0x05, position))
+                                }
+                            }
                         },
                         onBackClick = {
                             currentScreen = Screen.Dashboard
@@ -756,6 +811,7 @@ fun VisionCoreApp() {
                                 )
 
                                 prescriptionCompleted = true
+                                savePref(context, KEY_PRESCRIPTION_COMPLETED, true)
 
                                 if (prescriptionReturnScreen == Screen.ManualOverride) {
                                     currentScreen = Screen.ManualOverride
@@ -771,6 +827,7 @@ fun VisionCoreApp() {
             Screen.DevicePower -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     DevicePowerScreen(
+                        currentGlassesTilt = currentGlassesTilt,
                         onCaptureStep = { stepIndex ->
                             if (bluetoothConnectionState != ConnectionState.Connected) {
                                 true
@@ -793,6 +850,7 @@ fun VisionCoreApp() {
                         },
                         onCompleted = {
                             calibrationCompleted = true
+                            savePref(context, KEY_CALIBRATION_COMPLETED, true)
 
                             setupConfig = setupConfig.copy(
                                 calibrationCompleted = true
@@ -808,6 +866,7 @@ fun VisionCoreApp() {
                         },
                         onSkipClick = {
                             calibrationCompleted = true
+                            savePref(context, KEY_CALIBRATION_COMPLETED, true)
                             currentScreen = if (devicePowerReturnScreen == Screen.ManualOverride) {
                                 Screen.ManualOverride
                             } else {
@@ -972,4 +1031,35 @@ private fun buildProfileNameWithAgeRange(
     } else {
         "$cleanedName ($cleanedAgeRange)"
     }
+}
+
+private data class AppSettings(
+    val prescriptionCompleted: Boolean,
+    val calibrationCompleted: Boolean,
+    val settingsCompleted: Boolean,
+    val deadBatteryMode: String,
+    val autoModeEnabled: Boolean,
+    val setupDone: Boolean
+)
+
+private fun loadAppSettings(context: Context): AppSettings {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    return AppSettings(
+        prescriptionCompleted = prefs.getBoolean(KEY_PRESCRIPTION_COMPLETED, false),
+        calibrationCompleted = prefs.getBoolean(KEY_CALIBRATION_COMPLETED, false),
+        settingsCompleted = prefs.getBoolean(KEY_SETTINGS_COMPLETED, false),
+        deadBatteryMode = prefs.getString(KEY_DEAD_BATTERY_MODE, "Stay in last mode") ?: "Stay in last mode",
+        autoModeEnabled = prefs.getBoolean(KEY_AUTO_MODE_ENABLED, true),
+        setupDone = prefs.getBoolean(KEY_SETUP_DONE, false)
+    )
+}
+
+private fun savePref(context: Context, key: String, value: Boolean) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putBoolean(key, value).apply()
+}
+
+private fun savePref(context: Context, key: String, value: String) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putString(key, value).apply()
 }

@@ -82,6 +82,15 @@ class CommandCallbacks: public BLECharacteristicCallbacks {
         pStateCharacteristic->setValue(response, 2);
         pStateCharacteristic->notify();
 
+      } else if (cmd == 0x05 && value.length() == 2) {
+        // SET_LENS_POSITION: 0x00 = near, 0x01 = far, 0x02 = off
+        uint8_t pos = (uint8_t)value[1];
+        const char* label = (pos == 0x00) ? "near" :
+                            (pos == 0x01) ? "far"  : "off";
+        Serial.print("Lens position: ");
+        Serial.println(label);
+        // TODO: apply lens position here
+
       } else {
         Serial.print("Unknown command 0x");
         Serial.print(cmd, HEX);

@@ -52,13 +52,13 @@ import kotlinx.coroutines.delay
  data class CalibrationStepUi(
     val title: String,
     val subtitle: String,
-    val description: String,
-    val targetTilt: Int
+    val description: String
 )
 
 @Composable
 fun DevicePowerScreen(
     modifier: Modifier = Modifier,
+    currentGlassesTilt: Int = 0,
     onBackClick: () -> Unit = {},
     onCompleted: () -> Unit = {},
     onSkipClick: () -> Unit = {},
@@ -71,20 +71,17 @@ fun DevicePowerScreen(
             CalibrationStepUi(
                 title = "Look straight ahead",
                 subtitle = "Step 1 of 3",
-                description = "Like you're looking into the distance",
-                targetTilt = -30
+                description = "Like you're looking into the distance"
             ),
             CalibrationStepUi(
                 title = "Tilt Down",
                 subtitle = "Step 2 of 3",
-                description = "Like you're reading a book.\nHold still.",
-                targetTilt = -30
+                description = "Like you're reading a book.\nHold still."
             ),
             CalibrationStepUi(
                 title = "Look around",
                 subtitle = "Step 3 of 3",
-                description = "Slowly look from left to right.",
-                targetTilt = -30
+                description = "Slowly look from left to right."
             )
         )
     }
@@ -93,7 +90,6 @@ fun DevicePowerScreen(
     var stepStarted by remember { mutableStateOf(false) }
     var isHolding by remember { mutableStateOf(false) }
     var holdSeconds by remember { mutableStateOf(0.0) }
-    var currentTilt by remember { mutableStateOf(-23) }
     var captureError by remember { mutableStateOf(false) }
 
     val completedSteps = remember { mutableStateListOf<Int>() }
@@ -193,8 +189,7 @@ fun DevicePowerScreen(
 
             HoldStatusCard(
                 holdSeconds = holdSeconds,
-                currentTilt = currentTilt,
-                targetTilt = currentStep.targetTilt,
+                currentTilt = currentGlassesTilt,
                 isHolding = isHolding,
                 stepStarted = stepStarted,
                 stepCompleted = currentStepCompleted,
@@ -386,7 +381,6 @@ private fun CalibrationStepCard(
 private fun HoldStatusCard(
     holdSeconds: Double,
     currentTilt: Int,
-    targetTilt: Int,
     isHolding: Boolean,
     stepStarted: Boolean,
     stepCompleted: Boolean,
@@ -429,19 +423,10 @@ private fun HoldStatusCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row {
-                Text(
-                    text = "tilt: $currentTilt",
-                    fontSize = 11.sp
-                )
-
-                Spacer(modifier = Modifier.width(28.dp))
-
-                Text(
-                    text = "target: $targetTilt",
-                    fontSize = 11.sp
-                )
-            }
+            Text(
+                text = "tilt: $currentTilt°",
+                fontSize = 11.sp
+            )
         }
     }
 }
