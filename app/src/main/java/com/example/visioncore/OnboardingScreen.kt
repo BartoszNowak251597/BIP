@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.caverock.androidsvg.SVG
+import androidx.compose.ui.platform.LocalDensity
 
 @Composable
 fun OnboardingScreen(
@@ -100,12 +101,18 @@ fun OnboardingScreen(
         """.trimIndent()
     }
 
+    val density = LocalDensity.current
+
     val imageBitmap = remember(configuration) {
         try {
             val svg = SVG.getFromString(svgCode)
 
-            val widthPx = configuration.screenWidthDp
-            val heightPx = configuration.screenHeightDp
+            val widthPx = with(density) {
+                configuration.screenWidthDp.dp.toPx().toInt()
+            }
+            val heightPx = with(density) {
+                configuration.screenHeightDp.dp.toPx().toInt()
+            }
 
             val bitmap = Bitmap.createBitmap(
                 widthPx,
@@ -115,10 +122,18 @@ fun OnboardingScreen(
 
             val canvas = Canvas(bitmap)
 
-            svg.setDocumentWidth(widthPx.toString())
-            svg.setDocumentHeight(heightPx.toString())
+            val picture = svg.renderToPicture()
 
-            svg.renderToCanvas(canvas)
+            val scaleX = bitmap.width / svg.documentViewBox.width()
+            val scaleY = bitmap.height / svg.documentViewBox.height()
+            val scale = maxOf(scaleX, scaleY)
+
+            canvas.save()
+            canvas.scale(scale, scale)
+            canvas.drawPicture(picture)
+            canvas.restore()
+
+
 
             bitmap.asImageBitmap()
         } catch (e: Exception) {
