@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -53,12 +54,31 @@ fun ProfilesScreen(
     onBackClick: () -> Unit,
     onContinueClick: () -> Unit
 ) {
-    var selectedProfileId by remember(activeProfileId) { mutableIntStateOf(activeProfileId) }
+    var selectedProfileId by remember(activeProfileId) {
+        mutableIntStateOf(activeProfileId)
+    }
+
     var profileToEdit by remember { mutableStateOf<Profile?>(null) }
     var editedName by remember { mutableStateOf("") }
     var editedAgeRange by remember { mutableStateOf("") }
 
-    val selectedProfile = profiles.firstOrNull { it.id == selectedProfileId } ?: profiles.firstOrNull()
+    LaunchedEffect(profiles.size, activeProfileId) {
+        if (profiles.isEmpty()) {
+            selectedProfileId = 0
+        } else if (profiles.none { it.id == selectedProfileId }) {
+            selectedProfileId =
+                if (profiles.any { it.id == activeProfileId }) {
+                    activeProfileId
+                } else {
+                    profiles.first().id
+                }
+        }
+    }
+
+    val selectedProfile =
+        profiles.firstOrNull { it.id == selectedProfileId }
+            ?: profiles.firstOrNull()
+
     val editingProfile = profileToEdit
 
     if (editingProfile != null) {
@@ -216,7 +236,7 @@ fun ProfilesScreen(
             ) {
                 IconButton(onClick = onBackClick) {
                     Text(
-                        text = "◀ ",
+                        text = "◀",
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
@@ -261,61 +281,85 @@ fun ProfilesScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
             Divider()
+
             Spacer(modifier = Modifier.height(12.dp))
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                items(profiles, key = { it.id }) { profile ->
-                    val isSelected = profile.id == selectedProfileId
-                    val isActive = profile.id == activeProfileId
+            if (profiles.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No profiles yet.\nCreate a profile to continue.",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    items(
+                        items = profiles,
+                        key = { profile -> profile.id }
+                    ) { profile ->
+                        val isSelected = profile.id == selectedProfileId
+                        val isActive = profile.id == activeProfileId
 
-                    Surface(
-                        onClick = {
-                            selectedProfileId = profile.id
-                            onProfileClick(profile)
-                        },
-                        shape = RoundedCornerShape(50),
-                        color = if (isSelected) Color.Black else Color(0xFFF2F2F2),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Surface(
+                            onClick = {
+                                selectedProfileId = profile.id
+                                onProfileClick(profile)
+                            },
+                            shape = RoundedCornerShape(50),
+                            color = if (isSelected) Color.Black else Color(0xFFF2F2F2),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = if (isSelected) Color.White else Color.Black
-                            )
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Text(
-                                text = profile.name,
-                                color = if (isSelected) Color.White else Color.Black,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            if (isActive) {
-                                Text(
-                                    text = "ACTIVE",
-                                    color = if (isSelected) Color.White else Color.Black,
-                                    fontWeight = FontWeight.Bold
+                            Row(
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 14.dp
+                                ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = if (isSelected) Color.White else Color.Black
                                 )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Text(
+                                    text = profile.name,
+                                    color = if (isSelected) Color.White else Color.Black,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                if (isActive) {
+                                    Text(
+                                        text = "ACTIVE",
+                                        color = if (isSelected) Color.White else Color.Black,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -332,12 +376,14 @@ fun ProfilesScreen(
                     enabled = selectedProfile != null,
                     modifier = Modifier
                         .weight(1f)
-                        .height(50.dp),
+                        .height(52.dp),
                     shape = RoundedCornerShape(50),
                     border = BorderStroke(2.dp, Color.Black),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.White,
-                        contentColor = Color.Black
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.Gray
                     )
                 ) {
                     Text(
@@ -349,23 +395,29 @@ fun ProfilesScreen(
                 OutlinedButton(
                     onClick = {
                         selectedProfile?.let { profile ->
-                            onDeleteProfileClick(profile)
                             val nextProfile = profiles.firstOrNull { it.id != profile.id }
+
+                            onDeleteProfileClick(profile)
+
                             if (nextProfile != null) {
                                 selectedProfileId = nextProfile.id
                                 onProfileClick(nextProfile)
+                            } else {
+                                selectedProfileId = 0
                             }
                         }
                     },
-                    enabled = selectedProfile != null && profiles.size > 1,
+                    enabled = selectedProfile != null,
                     modifier = Modifier
                         .weight(1f)
-                        .height(50.dp),
+                        .height(52.dp),
                     shape = RoundedCornerShape(50),
                     border = BorderStroke(2.dp, Color.Black),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.White,
-                        contentColor = Color.Black
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.White,
+                        disabledContentColor = Color.Gray
                     )
                 ) {
                     Text(
@@ -378,21 +430,27 @@ fun ProfilesScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp, bottom = 10.dp),
+                    .padding(top = 16.dp, bottom = 28.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Button(
                     onClick = onContinueClick,
+                    enabled = profiles.isNotEmpty(),
                     shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFFE0E0E0),
+                        disabledContentColor = Color.Gray
+                    ),
                     modifier = Modifier
                         .fillMaxWidth(0.72f)
-                        .height(52.dp)
+                        .height(54.dp)
                 ) {
                     Text(
                         text = "Continue",
                         fontSize = 22.sp,
-                        color = Color.White,
+                        color = if (profiles.isNotEmpty()) Color.White else Color.Gray,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -402,7 +460,7 @@ fun ProfilesScreen(
                         text = "▶",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = if (profiles.isNotEmpty()) Color.White else Color.Gray
                     )
                 }
             }
@@ -437,12 +495,19 @@ private fun AgeRangeButton(
 }
 
 private fun extractProfileNameWithoutAgeRange(profileName: String): String {
-    return profileName.replace(Regex("\\s*\\([^)]*\\)\\s*$"), "").trim()
+    return profileName
+        .replace(Regex("\\s*\\([^)]*\\)\\s*$"), "")
+        .trim()
 }
 
 private fun extractAgeRangeFromProfileName(profileName: String): String {
     val match = Regex("\\(([^)]*)\\)\\s*$").find(profileName)
-    return match?.groupValues?.getOrNull(1)?.trim().orEmpty()
+
+    return match
+        ?.groupValues
+        ?.getOrNull(1)
+        ?.trim()
+        .orEmpty()
 }
 
 private fun buildProfileNameWithAgeRange(
@@ -450,9 +515,14 @@ private fun buildProfileNameWithAgeRange(
     ageRange: String,
     fallbackName: String
 ): String {
-    val cleanedName = name.trim().ifBlank {
-        extractProfileNameWithoutAgeRange(fallbackName).ifBlank { fallbackName }
-    }
+    val cleanedName = name
+        .trim()
+        .ifBlank {
+            extractProfileNameWithoutAgeRange(fallbackName).ifBlank {
+                fallbackName
+            }
+        }
+
     val cleanedAgeRange = ageRange.trim()
 
     return if (cleanedAgeRange.isBlank()) {
