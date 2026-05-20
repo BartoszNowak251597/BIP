@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +18,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.example.visioncore.bluetooth.ConnectionState
+import com.example.visioncore.bluetooth.RealBluetoothRepository
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -27,6 +31,8 @@ private const val KEY_ACTIVE_PROFILE_ID = "active_profile_id"
 @Composable
 fun VisionCoreApp() {
     val context = LocalContext.current
+    val bluetoothRepository = remember { RealBluetoothRepository(context) }
+    val bluetoothConnectionState by bluetoothRepository.connectionState.collectAsState()
 
     var currentScreen by rememberSaveable { mutableStateOf(Screen.Onboarding) }
     var setupConfig by remember { mutableStateOf(SetupConfig()) }
@@ -87,6 +93,15 @@ fun VisionCoreApp() {
 
     var nextProfileId by rememberSaveable {
         mutableIntStateOf(loadNextProfileId(context, profiles))
+    }
+
+    val activeProfile = profiles.firstOrNull { it.id == activeProfileId }
+
+    LaunchedEffect(bluetoothConnectionState, activeProfile) {
+        if (bluetoothConnectionState == ConnectionState.Connected) {
+            val profile = activeProfile ?: return@LaunchedEffect
+            bluetoothRepository.sendBytes(profile.toPrescriptionBytes())
+        }
     }
 
     var bluetoothCompleted by rememberSaveable { mutableStateOf(false) }
@@ -346,7 +361,7 @@ fun VisionCoreApp() {
         }
     }
 
-    BackHandler {
+    BackHandler(enabled = currentScreen != Screen.Dashboard && currentScreen != Screen.Onboarding) {
         goBack()
     }
 
@@ -429,6 +444,7 @@ fun VisionCoreApp() {
             Screen.Bluetooth -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     BluetoothScreen(
+                        bluetoothRepository = bluetoothRepository,
                         onBackClick = {
                             goBackFromBluetooth()
                         },
@@ -741,6 +757,14 @@ fun VisionCoreApp() {
                                 currentScreen = Screen.ManualOverride
                             } else {
                                 goToDashboardOrAllSet()
+                            }
+                        },
+                        onSkipClick = {
+                            calibrationCompleted = true
+                            currentScreen = if (devicePowerReturnScreen == Screen.ManualOverride) {
+                                Screen.ManualOverride
+                            } else {
+                                Screen.Dashboard
                             }
                         }
                     )
