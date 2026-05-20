@@ -284,7 +284,7 @@ private fun ManualTabs(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(70.dp)
+            .height(50.dp)
             .background(bgColor(darkMode))
             .border(BorderStroke(1.dp, fgColor(darkMode))),
         verticalAlignment = Alignment.Bottom

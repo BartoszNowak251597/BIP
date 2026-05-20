@@ -1,6 +1,7 @@
 package com.example.visioncore
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,6 +52,8 @@ fun CreateProfileScreen(
     var name by remember { mutableStateOf(initialName) }
     var selectedAge by remember { mutableStateOf(initialAge) }
 
+    val focusManager = LocalFocusManager.current
+
     LaunchedEffect(initialName, initialAge) {
         name = initialName
         selectedAge = initialAge
@@ -58,7 +63,15 @@ fun CreateProfileScreen(
     val canContinue = name.trim().isNotBlank() && selectedAge.isNotBlank()
 
     Surface(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        focusManager.clearFocus()
+                    }
+                )
+            },
         color = Color.White
     ) {
         Column(
@@ -67,6 +80,7 @@ fun CreateProfileScreen(
                 .padding(horizontal = 24.dp, vertical = 16.dp)
                 .navigationBarsPadding()
         ) {
+
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -95,6 +109,7 @@ fun CreateProfileScreen(
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
             ) {
+
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
@@ -137,12 +152,15 @@ fun CreateProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+
                     ageOptions.forEach { age ->
+
                         val selected = selectedAge == age
 
                         OutlinedButton(
                             onClick = {
                                 selectedAge = age
+                                focusManager.clearFocus()
                             },
                             modifier = Modifier
                                 .weight(
@@ -177,8 +195,10 @@ fun CreateProfileScreen(
                     .padding(bottom = 32.dp),
                 contentAlignment = Alignment.Center
             ) {
+
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         onAddProfile(name.trim(), selectedAge)
                     },
                     enabled = canContinue,
@@ -193,6 +213,7 @@ fun CreateProfileScreen(
                         .fillMaxWidth(0.75f)
                         .height(54.dp)
                 ) {
+
                     Text(
                         text = buttonText,
                         fontSize = 20.sp,
