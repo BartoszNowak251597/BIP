@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -132,7 +131,6 @@ fun ManualOverrideScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(bgColor(darkColorMode))
-                .navigationBarsPadding()
         ) {
             ManualTopBanner()
 
@@ -325,7 +323,7 @@ private fun ManualTabButton(
 ) {
     Box(
         modifier = modifier
-            .height(54.dp)
+            .height(50.dp)
             .background(if (selected) selectedBgColor(darkMode) else bgColor(darkMode))
             .clickable { onClick() },
         contentAlignment = Alignment.Center
