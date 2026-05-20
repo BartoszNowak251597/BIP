@@ -145,10 +145,8 @@ fun VisionCoreApp() {
                     bluetoothRepository.sendBytes(it.toPrescriptionBytes())
                 }
                 bluetoothRepository.sendBytes(autoModeEnabled.toModeBytes())
-                if (pendingDeadBatterySync) {
-                    bluetoothRepository.sendBytes(setupConfig.deadBatteryMode.toDeadBatteryBytes())
-                    pendingDeadBatterySync = false
-                }
+                bluetoothRepository.sendBytes(setupConfig.deadBatteryMode.toDeadBatteryBytes())
+                pendingDeadBatterySync = false
             }
             ConnectionState.Disconnected -> {
                 if (wasConnected) {
