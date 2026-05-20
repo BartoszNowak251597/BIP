@@ -39,8 +39,24 @@ fun VisionCoreApp() {
         mutableStateOf(Screen.Profiles)
     }
 
+    var prescriptionReturnScreen by rememberSaveable {
+        mutableStateOf(Screen.Dashboard)
+    }
+
     var manualOverrideStartOnProfilesTab by rememberSaveable {
         mutableStateOf(false)
+    }
+
+    var editingProfileId by rememberSaveable {
+        mutableIntStateOf(0)
+    }
+
+    var pendingProfileName by rememberSaveable {
+        mutableStateOf("")
+    }
+
+    var pendingProfileAge by rememberSaveable {
+        mutableStateOf("")
     }
 
     val profiles = remember {
@@ -160,6 +176,60 @@ fun VisionCoreApp() {
         }
     }
 
+    fun startEditingProfile(profile: Profile, returnScreen: Screen) {
+        editingProfileId = profile.id
+        pendingProfileName = extractProfileNameWithoutAgeRange(profile.name)
+        pendingProfileAge = extractAgeRangeFromProfileName(profile.name)
+
+        createProfileReturnScreen = returnScreen
+        prescriptionReturnScreen = returnScreen
+
+        if (returnScreen == Screen.ManualOverride) {
+            manualOverrideStartOnProfilesTab = true
+        }
+
+        currentScreen = Screen.CreateProfile
+    }
+
+    fun finishEditingProfile(
+        nearLeft: String,
+        nearRight: String,
+        farLeft: String,
+        farRight: String
+    ) {
+        val profileId = editingProfileId
+        val index = profiles.indexOfFirst { it.id == profileId }
+
+        if (index != -1) {
+            val oldProfile = profiles[index]
+
+            val updatedProfile = oldProfile.copy(
+                name = buildProfileNameWithAgeRange(
+                    name = pendingProfileName,
+                    ageRange = pendingProfileAge,
+                    fallbackName = oldProfile.name
+                ),
+                nearLeft = nearLeft,
+                nearRight = nearRight,
+                farLeft = farLeft,
+                farRight = farRight
+            )
+
+            profiles[index] = updatedProfile
+            activeProfileId = updatedProfile.id
+            selectedProfileId = updatedProfile.id
+            profileCompleted = true
+            updateSetupConfigFromActiveProfile(updatedProfile)
+            saveProfilesNow()
+        }
+
+        editingProfileId = 0
+        pendingProfileName = ""
+        pendingProfileAge = ""
+
+        currentScreen = prescriptionReturnScreen
+    }
+
     fun goBack() {
         currentScreen = when (currentScreen) {
             Screen.Dashboard -> Screen.Dashboard
@@ -213,6 +283,7 @@ fun VisionCoreApp() {
                             currentScreen = Screen.Profiles
                         },
                         onPrescriptionClick = {
+                            editingProfileId = 0
                             currentScreen = Screen.Prescription
                         },
                         onDevicePowerClick = {
@@ -276,6 +347,7 @@ fun VisionCoreApp() {
                             autoModeEnabled = enabled
                         },
                         onAddProfileClick = {
+                            editingProfileId = 0
                             createProfileReturnScreen = Screen.ManualOverride
                             manualOverrideStartOnProfilesTab = true
                             currentScreen = Screen.CreateProfile
@@ -287,13 +359,17 @@ fun VisionCoreApp() {
                             updateSetupConfigFromActiveProfile(profile)
                             saveProfilesNow()
                         },
-                        onProfileEdited = { updatedProfile ->
-                            editFullProfile(updatedProfile)
+                        onProfileEdited = { profile ->
+                            startEditingProfile(
+                                profile = profile,
+                                returnScreen = Screen.ManualOverride
+                            )
                         },
                         onRecalibrateClick = {
                             currentScreen = Screen.DevicePower
                         },
                         onDioptriesClick = {
+                            editingProfileId = 0
                             currentScreen = Screen.Prescription
                         },
                         onBackClick = {
@@ -316,12 +392,16 @@ fun VisionCoreApp() {
                             saveProfilesNow()
                         },
                         onAddProfileClick = {
+                            editingProfileId = 0
                             createProfileReturnScreen = Screen.Profiles
                             manualOverrideStartOnProfilesTab = false
                             currentScreen = Screen.CreateProfile
                         },
-                        onEditProfileClick = { profile, newName ->
-                            editProfileName(profile, newName)
+                        onEditProfileClick = { profile, _ ->
+                            startEditingProfile(
+                                profile = profile,
+                                returnScreen = Screen.Profiles
+                            )
                         },
                         onDeleteProfileClick = { profile ->
                             deleteProfile(profile.id)
@@ -344,31 +424,76 @@ fun VisionCoreApp() {
             }
 
             Screen.CreateProfile -> {
+                val editedProfile = profiles.firstOrNull { it.id == editingProfileId }
+
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     CreateProfileScreen(
+                        initialName = if (editingProfileId != 0) {
+                            pendingProfileName.ifBlank {
+                                editedProfile?.name
+                                    ?.let { extractProfileNameWithoutAgeRange(it) }
+                                    .orEmpty()
+                            }
+                        } else {
+                            ""
+                        },
+                        initialAge = if (editingProfileId != 0) {
+                            pendingProfileAge.ifBlank {
+                                editedProfile?.name
+                                    ?.let { extractAgeRangeFromProfileName(it) }
+                                    .orEmpty()
+                            }
+                        } else {
+                            ""
+                        },
+                        title = if (editingProfileId != 0) {
+                            "Edit profile"
+                        } else {
+                            "Profile"
+                        },
+                        description = if (editingProfileId != 0) {
+                            "Update profile details."
+                        } else {
+                            "Who is this profile for?"
+                        },
+                        buttonText = if (editingProfileId != 0) {
+                            "Continue"
+                        } else {
+                            "add profile"
+                        },
                         onBackClick = {
                             currentScreen = createProfileReturnScreen
                         },
                         onAddProfile = { name, age ->
                             val finalName = name.trim().ifBlank { "Unnamed profile" }
 
-                            val newProfile = Profile(
-                                id = nextProfileId,
-                                name = "$finalName ($age)",
-                                createdAt = getCurrentDateText()
-                            )
+                            if (editingProfileId != 0) {
+                                pendingProfileName = finalName
+                                pendingProfileAge = age
+                                currentScreen = Screen.Prescription
+                            } else {
+                                val newProfile = Profile(
+                                    id = nextProfileId,
+                                    name = buildProfileNameWithAgeRange(
+                                        name = finalName,
+                                        ageRange = age,
+                                        fallbackName = finalName
+                                    ),
+                                    createdAt = getCurrentDateText()
+                                )
 
-                            profiles.add(newProfile)
+                                profiles.add(newProfile)
 
-                            activeProfileId = newProfile.id
-                            selectedProfileId = newProfile.id
-                            nextProfileId++
+                                activeProfileId = newProfile.id
+                                selectedProfileId = newProfile.id
+                                nextProfileId++
 
-                            profileCompleted = true
-                            updateSetupConfigFromActiveProfile(newProfile)
-                            saveProfilesNow()
+                                profileCompleted = true
+                                updateSetupConfigFromActiveProfile(newProfile)
+                                saveProfilesNow()
 
-                            currentScreen = createProfileReturnScreen
+                                currentScreen = createProfileReturnScreen
+                            }
                         }
                     )
                 }
@@ -396,14 +521,40 @@ fun VisionCoreApp() {
             }
 
             Screen.Prescription -> {
+                val editedProfile = profiles.firstOrNull { it.id == editingProfileId }
+
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     PrescriptionScreen(
+                        initialNearLeft = editedProfile?.nearLeft ?: setupConfig.nearLeft,
+                        initialNearRight = editedProfile?.nearRight ?: setupConfig.nearRight,
+                        initialFarLeft = editedProfile?.farLeft ?: setupConfig.farLeft,
+                        initialFarRight = editedProfile?.farRight ?: setupConfig.farRight,
                         onBackClick = {
-                            currentScreen = Screen.Dashboard
+                            if (editingProfileId != 0) {
+                                currentScreen = Screen.CreateProfile
+                            } else {
+                                currentScreen = Screen.Dashboard
+                            }
                         },
-                        onContinueClick = {
-                            prescriptionCompleted = true
-                            goToDashboardOrAllSet()
+                        onContinueClick = { nearLeft, nearRight, farLeft, farRight ->
+                            if (editingProfileId != 0) {
+                                finishEditingProfile(
+                                    nearLeft = nearLeft,
+                                    nearRight = nearRight,
+                                    farLeft = farLeft,
+                                    farRight = farRight
+                                )
+                            } else {
+                                setupConfig = setupConfig.copy(
+                                    nearLeft = nearLeft,
+                                    nearRight = nearRight,
+                                    farLeft = farLeft,
+                                    farRight = farRight
+                                )
+
+                                prescriptionCompleted = true
+                                goToDashboardOrAllSet()
+                            }
                         }
                     )
                 }
@@ -464,9 +615,9 @@ private fun loadProfiles(context: Context): List<Profile> {
                         name = item.getString("name"),
                         createdAt = item.getString("createdAt"),
                         nearLeft = item.optString("nearLeft", "+1.50"),
-                        nearRight = item.optString("nearRight", "+1.50"),
+                        nearRight = item.optString("nearRight", "+1.75"),
                         farLeft = item.optString("farLeft", "-2.00"),
-                        farRight = item.optString("farRight", "-2.00")
+                        farRight = item.optString("farRight", "-2.25")
                     )
                 )
             }
@@ -538,5 +689,43 @@ private fun loadActiveProfileId(
         savedActiveProfileId
     } else {
         profiles.first().id
+    }
+}
+
+private fun extractProfileNameWithoutAgeRange(profileName: String): String {
+    return profileName
+        .replace(Regex("\\s*\\([^)]*\\)\\s*$"), "")
+        .trim()
+}
+
+private fun extractAgeRangeFromProfileName(profileName: String): String {
+    val match = Regex("\\(([^)]*)\\)\\s*$").find(profileName)
+
+    return match
+        ?.groupValues
+        ?.getOrNull(1)
+        ?.trim()
+        .orEmpty()
+}
+
+private fun buildProfileNameWithAgeRange(
+    name: String,
+    ageRange: String,
+    fallbackName: String
+): String {
+    val cleanedName = name
+        .trim()
+        .ifBlank {
+            extractProfileNameWithoutAgeRange(fallbackName).ifBlank {
+                fallbackName
+            }
+        }
+
+    val cleanedAgeRange = ageRange.trim()
+
+    return if (cleanedAgeRange.isBlank()) {
+        cleanedName
+    } else {
+        "$cleanedName ($cleanedAgeRange)"
     }
 }

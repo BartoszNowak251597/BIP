@@ -25,17 +25,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -165,9 +162,9 @@ fun ManualOverrideScreen(
                                 selectedProfileId = profile.id
                                 onProfileSelected(profile)
                             },
-                            onProfileEdit = { updatedProfile ->
-                                selectedProfileId = updatedProfile.id
-                                onProfileEdited(updatedProfile)
+                            onProfileEdit = { profile ->
+                                selectedProfileId = profile.id
+                                onProfileEdited(profile)
                             }
                         )
                     }
@@ -497,103 +494,6 @@ private fun ProfilesTab(
     onProfileClick: (Profile) -> Unit,
     onProfileEdit: (Profile) -> Unit
 ) {
-    var profileToEdit by remember { mutableStateOf<Profile?>(null) }
-
-    var editName by remember { mutableStateOf("") }
-    var editNearLeft by remember { mutableStateOf("") }
-    var editNearRight by remember { mutableStateOf("") }
-    var editFarLeft by remember { mutableStateOf("") }
-    var editFarRight by remember { mutableStateOf("") }
-
-    val selectedProfile = profileToEdit
-
-    if (selectedProfile != null) {
-        AlertDialog(
-            onDismissRequest = {
-                profileToEdit = null
-            },
-            title = {
-                Text(text = "Edit profile")
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = editName,
-                        onValueChange = { editName = it },
-                        label = { Text(text = "Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = editNearLeft,
-                            onValueChange = { editNearLeft = it },
-                            label = { Text(text = "Near L") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        OutlinedTextField(
-                            value = editNearRight,
-                            onValueChange = { editNearRight = it },
-                            label = { Text(text = "Near R") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = editFarLeft,
-                            onValueChange = { editFarLeft = it },
-                            label = { Text(text = "Far L") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        OutlinedTextField(
-                            value = editFarRight,
-                            onValueChange = { editFarRight = it },
-                            label = { Text(text = "Far R") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val updatedProfile = selectedProfile.copy(
-                            name = editName.trim().ifBlank { selectedProfile.name },
-                            nearLeft = editNearLeft.trim().ifBlank { selectedProfile.nearLeft },
-                            nearRight = editNearRight.trim().ifBlank { selectedProfile.nearRight },
-                            farLeft = editFarLeft.trim().ifBlank { selectedProfile.farLeft },
-                            farRight = editFarRight.trim().ifBlank { selectedProfile.farRight }
-                        )
-
-                        onProfileEdit(updatedProfile)
-                        profileToEdit = null
-                    }
-                ) {
-                    Text(text = "Save")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        profileToEdit = null
-                    }
-                ) {
-                    Text(text = "Cancel")
-                }
-            }
-        )
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -668,12 +568,7 @@ private fun ProfilesTab(
                             onProfileClick(profile)
                         },
                         onEditClick = {
-                            editName = profile.name
-                            editNearLeft = profile.nearLeft
-                            editNearRight = profile.nearRight
-                            editFarLeft = profile.farLeft
-                            editFarRight = profile.farRight
-                            profileToEdit = profile
+                            onProfileEdit(profile)
                         }
                     )
                 }
