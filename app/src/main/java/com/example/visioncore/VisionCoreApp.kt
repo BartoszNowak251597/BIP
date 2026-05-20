@@ -489,6 +489,11 @@ fun VisionCoreApp() {
                                 returnScreen = Screen.ManualOverride
                             )
                         },
+                        onProfileDelete = { profile ->
+                            deleteProfile(profile.id)
+                            manualOverrideStartOnProfilesTab = true
+                            manualOverrideStartOnDeviceTab = false
+                        },
                         onRecalibrateClick = {
                             devicePowerReturnScreen = Screen.ManualOverride
                             manualOverrideStartOnProfilesTab = false

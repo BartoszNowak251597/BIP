@@ -94,6 +94,7 @@ fun ManualOverrideScreen(
     onAutoModeChanged: (Boolean) -> Unit = {},
     onProfileSelected: (Profile) -> Unit = {},
     onProfileEdited: (Profile) -> Unit = {},
+    onProfileDelete: (Profile) -> Unit = {},
     onAddProfileClick: () -> Unit = {},
     onDeviceSettingsClick: () -> Unit = {},
     onRecalibrateClick: () -> Unit = {},
@@ -170,6 +171,9 @@ fun ManualOverrideScreen(
                             onProfileEdit = { profile ->
                                 selectedProfileId = profile.id
                                 onProfileEdited(profile)
+                            },
+                            onProfileDelete = { profile ->
+                                onProfileDelete(profile)
                             }
                         )
                     }
@@ -498,7 +502,8 @@ private fun ProfilesTab(
     darkMode: Boolean,
     onAddProfileClick: () -> Unit,
     onProfileClick: (Profile) -> Unit,
-    onProfileEdit: (Profile) -> Unit
+    onProfileEdit: (Profile) -> Unit,
+    onProfileDelete: (Profile) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -575,6 +580,9 @@ private fun ProfilesTab(
                         },
                         onEditClick = {
                             onProfileEdit(profile)
+                        },
+                        onDeleteClick = {
+                            onProfileDelete(profile)
                         }
                     )
                 }
@@ -904,7 +912,8 @@ private fun ProfileRowCard(
     active: Boolean,
     darkMode: Boolean,
     onClick: () -> Unit,
-    onEditClick: () -> Unit
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val cardBg = if (active) selectedBgColor(darkMode) else bgColor(darkMode)
     val cardFg = if (active) selectedFgColor(darkMode) else fgColor(darkMode)
@@ -914,7 +923,7 @@ private fun ProfileRowCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 120.dp)
+            .heightIn(min = 134.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(18.dp),
         border = BorderStroke(
@@ -942,7 +951,6 @@ private fun ProfileRowCard(
 
             Spacer(modifier = Modifier.width(14.dp))
 
-            // ===== CENTER CONTENT =====
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -967,7 +975,6 @@ private fun ProfileRowCard(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // ===== NEAR (FIXED) =====
                 Row {
                     Text(
                         text = "NEAR",
@@ -997,7 +1004,6 @@ private fun ProfileRowCard(
 
                 Spacer(modifier = Modifier.height(3.dp))
 
-                // ===== FAR (FIXED) =====
                 Row {
                     Text(
                         text = "FAR",
@@ -1028,17 +1034,15 @@ private fun ProfileRowCard(
 
             Spacer(modifier = Modifier.width(10.dp))
 
-            // ===== RIGHT PANEL =====
             Column(
                 modifier = Modifier.width(76.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(30.dp)
+                        .height(26.dp)
                         .clip(RoundedCornerShape(50.dp))
                         .background(inverseBg),
                     contentAlignment = Alignment.Center
@@ -1052,13 +1056,13 @@ private fun ProfileRowCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Button(
                     onClick = onEditClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(38.dp),
+                        .height(32.dp),
                     shape = RoundedCornerShape(50.dp),
                     border = BorderStroke(
                         width = 1.dp,
@@ -1072,7 +1076,33 @@ private fun ProfileRowCard(
                 ) {
                     Text(
                         text = "EDIT",
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Button(
+                    onClick = onDeleteClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp),
+                    shape = RoundedCornerShape(50.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = Color(0xFFFF1919)
+                    ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFF1919),
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = "DELETE",
+                        fontSize = 8.sp,
                         fontWeight = FontWeight.ExtraBold,
                         maxLines = 1
                     )
