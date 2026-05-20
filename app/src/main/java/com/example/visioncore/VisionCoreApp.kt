@@ -116,6 +116,12 @@ fun VisionCoreApp() {
     var pendingDeadBatterySync by rememberSaveable { mutableStateOf(false) }
     var wasConnected by remember { mutableStateOf(false) }
 
+    var bluetoothCompleted by rememberSaveable { mutableStateOf(false) }
+    var profileCompleted by rememberSaveable { mutableStateOf(profiles.isNotEmpty()) }
+    var prescriptionCompleted by rememberSaveable { mutableStateOf(appSettings.prescriptionCompleted) }
+    var calibrationCompleted by rememberSaveable { mutableStateOf(appSettings.calibrationCompleted) }
+    var settingsCompleted by rememberSaveable { mutableStateOf(appSettings.settingsCompleted) }
+
     var currentGlassesTilt by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
@@ -167,12 +173,6 @@ fun VisionCoreApp() {
             bluetoothRepository.sendBytes(autoModeEnabled.toModeBytes())
         }
     }
-
-    var bluetoothCompleted by rememberSaveable { mutableStateOf(false) }
-    var profileCompleted by rememberSaveable { mutableStateOf(profiles.isNotEmpty()) }
-    var prescriptionCompleted by rememberSaveable { mutableStateOf(appSettings.prescriptionCompleted) }
-    var calibrationCompleted by rememberSaveable { mutableStateOf(appSettings.calibrationCompleted) }
-    var settingsCompleted by rememberSaveable { mutableStateOf(appSettings.settingsCompleted) }
 
     fun saveProfilesNow() {
         saveProfiles(
