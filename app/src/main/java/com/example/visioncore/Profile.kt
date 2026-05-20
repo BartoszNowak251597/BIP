@@ -10,3 +10,14 @@ data class Profile(
     val farRight: String = "-2.25",
     val calibrationCompleted: Boolean = false
 )
+
+fun Profile.toPrescriptionBytes(): ByteArray {
+    fun encode(s: String) = (s.toFloat() * 4).toInt().toByte()
+    return byteArrayOf(
+        0x01,
+        encode(nearLeft),
+        encode(nearRight),
+        encode(farLeft),
+        encode(farRight)
+    )
+}
