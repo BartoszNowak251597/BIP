@@ -48,6 +48,27 @@ class CommandCallbacks: public BLECharacteristicCallbacks {
         Serial.print("  FR: ");              Serial.println(farRight, 2);
 
         // TODO: pass values to the lens controller here
+
+      } else if (cmd == 0x02 && value.length() == 2) {
+        // SET_MODE: 0x00 = auto (tilt-based), 0x01 = manual (hold position)
+        uint8_t mode = (uint8_t)value[1];
+        if (mode == 0x00) {
+          Serial.println("Mode: auto");
+        } else {
+          Serial.println("Mode: manual");
+        }
+        // TODO: apply mode to the lens controller here
+
+      } else if (cmd == 0x03 && value.length() == 2) {
+        // SET_DEAD_BATTERY_MODE: 0x00=last, 0x01=near, 0x02=far, 0x03=neutral
+        uint8_t mode = (uint8_t)value[1];
+        const char* label = (mode == 0x01) ? "lock near"  :
+                            (mode == 0x02) ? "lock far"   :
+                            (mode == 0x03) ? "neutral 0D" : "stay last";
+        Serial.print("Dead battery mode: ");
+        Serial.println(label);
+        // TODO: persist to flash here
+
       } else {
         Serial.print("Unknown command 0x");
         Serial.print(cmd, HEX);

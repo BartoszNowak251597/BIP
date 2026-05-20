@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
@@ -33,6 +35,7 @@ fun VisionCoreApp() {
     val context = LocalContext.current
     val bluetoothRepository = remember { RealBluetoothRepository(context) }
     val bluetoothConnectionState by bluetoothRepository.connectionState.collectAsState()
+    val scope = rememberCoroutineScope()
 
     var currentScreen by rememberSaveable { mutableStateOf(Screen.Onboarding) }
     var setupConfig by remember { mutableStateOf(SetupConfig()) }
@@ -96,11 +99,33 @@ fun VisionCoreApp() {
     }
 
     val activeProfile = profiles.firstOrNull { it.id == activeProfileId }
+    var pendingDeadBatterySync by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(bluetoothConnectionState, activeProfile) {
+    // On connect: send prescription + mode, and flush any pending dead battery config
+    LaunchedEffect(bluetoothConnectionState) {
         if (bluetoothConnectionState == ConnectionState.Connected) {
-            val profile = activeProfile ?: return@LaunchedEffect
-            bluetoothRepository.sendBytes(profile.toPrescriptionBytes())
+            profiles.firstOrNull { it.id == activeProfileId }?.let {
+                bluetoothRepository.sendBytes(it.toPrescriptionBytes())
+            }
+            bluetoothRepository.sendBytes(autoModeEnabled.toModeBytes())
+            if (pendingDeadBatterySync) {
+                bluetoothRepository.sendBytes(setupConfig.deadBatteryMode.toDeadBatteryBytes())
+                pendingDeadBatterySync = false
+            }
+        }
+    }
+
+    // Profile dioptries changed while connected: resend prescription
+    LaunchedEffect(activeProfile) {
+        if (bluetoothConnectionState == ConnectionState.Connected && activeProfile != null) {
+            bluetoothRepository.sendBytes(activeProfile.toPrescriptionBytes())
+        }
+    }
+
+    // Auto/manual mode toggled while connected: resend mode
+    LaunchedEffect(autoModeEnabled) {
+        if (bluetoothConnectionState == ConnectionState.Connected) {
+            bluetoothRepository.sendBytes(autoModeEnabled.toModeBytes())
         }
     }
 
@@ -433,6 +458,14 @@ fun VisionCoreApp() {
                             setupConfig = setupConfig.copy(
                                 deadBatteryMode = selectedDeadBatteryMode
                             )
+
+                            if (bluetoothConnectionState == ConnectionState.Connected) {
+                                scope.launch {
+                                    bluetoothRepository.sendBytes(selectedDeadBatteryMode.toDeadBatteryBytes())
+                                }
+                            } else {
+                                pendingDeadBatterySync = true
+                            }
 
                             settingsCompleted = true
                             goToDashboardOrAllSet()
