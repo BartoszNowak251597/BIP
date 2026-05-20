@@ -100,7 +100,9 @@ fun ManualOverrideScreen(
     var selectedTab by remember { mutableStateOf(ManualTab.Now) }
     var selectedMode by remember { mutableStateOf(ManualMode.Near) }
     var autoModeEnabled by remember { mutableStateOf(true) }
-    var selectedProfileId by remember { mutableStateOf(activeProfileId) }
+    var selectedProfileId by remember(activeProfileId) {
+        mutableStateOf(activeProfileId)
+    }
 
     var deadBatteryMode by remember {
         mutableStateOf(setupConfig.deadBatteryMode.ifBlank { "Stay in last mode" })
@@ -356,7 +358,10 @@ private fun NowTab(
                     )
                 }
 
-                AutoToggleBadge(autoModeEnabled = autoModeEnabled, darkMode = darkMode)
+                AutoToggleBadge(
+                    autoModeEnabled = autoModeEnabled,
+                    darkMode = darkMode
+                )
             }
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -463,6 +468,8 @@ private fun NowTab(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(40.dp))
     }
 }
 
@@ -599,25 +606,42 @@ private fun ProfilesTab(
             modifier = Modifier.padding(horizontal = 22.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            profiles.forEach { profile ->
-                ProfileRowCard(
-                    profile = profile,
-                    active = profile.id == activeProfileId,
-                    darkMode = darkMode,
-                    onClick = {
-                        onProfileClick(profile)
-                    },
-                    onEditClick = {
-                        editName = profile.name
-                        editNearLeft = profile.nearLeft
-                        editNearRight = profile.nearRight
-                        editFarLeft = profile.farLeft
-                        editFarRight = profile.farRight
-                        profileToEdit = profile
-                    }
+            if (profiles.isEmpty()) {
+                Text(
+                    text = "No profiles yet.",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = fgColor(darkMode)
                 )
+
+                Text(
+                    text = "Create a profile in setup to see it here.",
+                    fontSize = 13.sp,
+                    color = fgColor(darkMode)
+                )
+            } else {
+                profiles.forEach { profile ->
+                    ProfileRowCard(
+                        profile = profile,
+                        active = profile.id == activeProfileId,
+                        darkMode = darkMode,
+                        onClick = {
+                            onProfileClick(profile)
+                        },
+                        onEditClick = {
+                            editName = profile.name
+                            editNearLeft = profile.nearLeft
+                            editNearRight = profile.nearRight
+                            editFarLeft = profile.farLeft
+                            editFarRight = profile.farRight
+                            profileToEdit = profile
+                        }
+                    )
+                }
             }
         }
+
+        Spacer(modifier = Modifier.height(40.dp))
     }
 }
 
@@ -639,7 +663,7 @@ private fun DeviceTab(
             .background(bgColor(darkColorMode))
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
-            .padding(top = 16.dp, bottom = 40.dp)
+            .padding(top = 16.dp, bottom = 48.dp)
     ) {
         DeviceCard(
             deviceName = setupConfig.bluetoothDeviceName.ifBlank { "VisionCore-A2FI" },
@@ -722,7 +746,7 @@ private fun DeviceTab(
             onCheckedChange = onDarkColorModeChange
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(48.dp))
     }
 }
 
@@ -995,7 +1019,7 @@ private fun DeviceOptionButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(68.dp)
             .padding(bottom = 10.dp),
         shape = RoundedCornerShape(50.dp),
         border = BorderStroke(
@@ -1006,7 +1030,7 @@ private fun DeviceOptionButton(
             containerColor = if (selected) selectedBgColor(darkMode) else bgColor(darkMode),
             contentColor = if (selected) selectedFgColor(darkMode) else fgColor(darkMode)
         ),
-        contentPadding = PaddingValues(horizontal = 26.dp, vertical = 6.dp)
+        contentPadding = PaddingValues(horizontal = 30.dp, vertical = 14.dp)
     ) {
         Box(
             modifier = Modifier.fillMaxWidth(),
@@ -1031,7 +1055,7 @@ private fun DeviceNavigationButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(68.dp)
             .padding(bottom = 10.dp),
         shape = RoundedCornerShape(50.dp),
         border = BorderStroke(2.dp, fgColor(darkMode)),
@@ -1039,7 +1063,7 @@ private fun DeviceNavigationButton(
             containerColor = bgColor(darkMode),
             contentColor = fgColor(darkMode)
         ),
-        contentPadding = PaddingValues(horizontal = 26.dp, vertical = 6.dp)
+        contentPadding = PaddingValues(horizontal = 30.dp, vertical = 14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1072,7 +1096,7 @@ private fun DeviceSwitchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(68.dp)
             .padding(bottom = 10.dp)
             .clip(RoundedCornerShape(50.dp))
             .background(bgColor(darkMode))
@@ -1081,7 +1105,7 @@ private fun DeviceSwitchRow(
                 color = if (highlighted) Color(0xFFFF1919) else fgColor(darkMode),
                 shape = RoundedCornerShape(50.dp)
             )
-            .padding(start = 26.dp, end = 12.dp),
+            .padding(start = 30.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(

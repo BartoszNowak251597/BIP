@@ -197,6 +197,7 @@ fun ProfilesScreen(
 
                                 onEditProfileClick(editingProfile, finalProfileName)
                                 selectedProfileId = editingProfile.id
+
                                 profileToEdit = null
                                 editedName = ""
                                 editedAgeRange = ""
@@ -258,7 +259,8 @@ fun ProfilesScreen(
             Text(
                 text = "Profiles store each user’s personalized glasses settings.",
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -450,7 +452,6 @@ fun ProfilesScreen(
                     Text(
                         text = "Continue",
                         fontSize = 22.sp,
-                        color = if (profiles.isNotEmpty()) Color.White else Color.Gray,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -459,8 +460,7 @@ fun ProfilesScreen(
                     Text(
                         text = "▶",
                         fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (profiles.isNotEmpty()) Color.White else Color.Gray
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

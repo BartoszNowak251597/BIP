@@ -29,6 +29,7 @@ fun VisionCoreApp() {
     val context = LocalContext.current
 
     var currentScreen by rememberSaveable { mutableStateOf(Screen.Onboarding) }
+    var setupConfig by remember { mutableStateOf(SetupConfig()) }
 
     val profiles = remember {
         mutableStateListOf<Profile>().apply {
@@ -63,6 +64,16 @@ fun VisionCoreApp() {
         )
     }
 
+    fun updateSetupConfigFromActiveProfile(profile: Profile) {
+        setupConfig = setupConfig.copy(
+            activeProfileName = profile.name,
+            nearLeft = profile.nearLeft,
+            nearRight = profile.nearRight,
+            farLeft = profile.farLeft,
+            farRight = profile.farRight
+        )
+    }
+
     fun isSetupCompleted(): Boolean {
         return bluetoothCompleted &&
                 profileCompleted &&
@@ -86,9 +97,13 @@ fun VisionCoreApp() {
             activeProfileId = 0
             selectedProfileId = 0
             profileCompleted = false
+            setupConfig = setupConfig.copy(
+                activeProfileName = ""
+            )
         } else {
             if (activeProfileId == profileId) {
                 activeProfileId = profiles.first().id
+                updateSetupConfigFromActiveProfile(profiles.first())
             }
 
             if (selectedProfileId == profileId) {
@@ -112,6 +127,7 @@ fun VisionCoreApp() {
             selectedProfileId = profile.id
             activeProfileId = profile.id
             profileCompleted = true
+            updateSetupConfigFromActiveProfile(profiles[index])
 
             saveProfilesNow()
         }
@@ -126,6 +142,7 @@ fun VisionCoreApp() {
             selectedProfileId = updatedProfile.id
             activeProfileId = updatedProfile.id
             profileCompleted = true
+            updateSetupConfigFromActiveProfile(updatedProfile)
 
             saveProfilesNow()
         }
@@ -201,10 +218,15 @@ fun VisionCoreApp() {
             Screen.Settings -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     SettingsScreen(
+                        selectedDeadBatteryMode = setupConfig.deadBatteryMode,
                         onBackClick = {
                             currentScreen = Screen.Dashboard
                         },
-                        onContinueClick = {
+                        onContinueClick = { selectedDeadBatteryMode ->
+                            setupConfig = setupConfig.copy(
+                                deadBatteryMode = selectedDeadBatteryMode
+                            )
+
                             settingsCompleted = true
                             goToDashboardOrAllSet()
                         }
@@ -232,12 +254,14 @@ fun VisionCoreApp() {
             Screen.ManualOverride -> {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     ManualOverrideScreen(
+                        setupConfig = setupConfig,
                         profiles = profiles,
                         activeProfileId = activeProfileId,
                         onProfileSelected = { profile ->
                             activeProfileId = profile.id
                             selectedProfileId = profile.id
                             profileCompleted = true
+                            updateSetupConfigFromActiveProfile(profile)
                             saveProfilesNow()
                         },
                         onProfileEdited = { updatedProfile ->
@@ -265,6 +289,7 @@ fun VisionCoreApp() {
                             activeProfileId = profile.id
                             selectedProfileId = profile.id
                             profileCompleted = true
+                            updateSetupConfigFromActiveProfile(profile)
                             saveProfilesNow()
                         },
                         onAddProfileClick = {
@@ -281,6 +306,9 @@ fun VisionCoreApp() {
                         },
                         onContinueClick = {
                             profileCompleted = profiles.isNotEmpty()
+                            profiles.firstOrNull { it.id == activeProfileId }?.let { profile ->
+                                updateSetupConfigFromActiveProfile(profile)
+                            }
                             saveProfilesNow()
                             goToDashboardOrAllSet()
                         }
@@ -310,6 +338,7 @@ fun VisionCoreApp() {
                             nextProfileId++
 
                             profileCompleted = true
+                            updateSetupConfigFromActiveProfile(newProfile)
                             saveProfilesNow()
 
                             currentScreen = Screen.Profiles
@@ -361,6 +390,9 @@ fun VisionCoreApp() {
                         },
                         onCompleted = {
                             calibrationCompleted = true
+                            setupConfig = setupConfig.copy(
+                                calibrationCompleted = true
+                            )
                             goToDashboardOrAllSet()
                         }
                     )

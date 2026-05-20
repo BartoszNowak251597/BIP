@@ -38,9 +38,11 @@ fun CreateProfileScreen(
     onBackClick: () -> Unit,
     onAddProfile: (String, String) -> Unit
 ) {
-    var name by remember { mutableStateOf("Jacob") }
-    var selectedAge by remember { mutableStateOf("<18") }
+    var name by remember { mutableStateOf("") }
+    var selectedAge by remember { mutableStateOf("") }
+
     val ageOptions = listOf("<18", "18-40", "40-60", "+60")
+    val canAddProfile = name.trim().isNotBlank() && selectedAge.isNotBlank()
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -52,7 +54,9 @@ fun CreateProfileScreen(
                 .padding(horizontal = 24.dp, vertical = 16.dp)
                 .navigationBarsPadding()
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 IconButton(onClick = onBackClick) {
                     Text(
                         text = "◀",
@@ -67,15 +71,17 @@ fun CreateProfileScreen(
                 Text(
                     text = "Profile",
                     fontSize = 35.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.Black
                 )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Who is this profile for ?",
-                fontSize = 18.sp
+                text = "Who is this profile for?",
+                fontSize = 18.sp,
+                color = Color.Black
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -86,11 +92,16 @@ fun CreateProfileScreen(
                 color = Color.Gray
             )
 
+            Spacer(modifier = Modifier.height(6.dp))
+
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                placeholder = {
+                    Text(text = "Enter name")
+                }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -103,12 +114,25 @@ fun CreateProfileScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 ageOptions.forEach { age ->
                     val selected = selectedAge == age
 
                     OutlinedButton(
-                        onClick = { selectedAge = age },
+                        onClick = {
+                            selectedAge = age
+                        },
+                        modifier = Modifier
+                            .weight(
+                                when (age) {
+                                    "<18", "+60" -> 1f
+                                    else -> 1.25f
+                                }
+                            )
+                            .height(42.dp),
                         shape = RoundedCornerShape(50),
                         border = BorderStroke(2.dp, Color.Black),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -116,7 +140,11 @@ fun CreateProfileScreen(
                             contentColor = if (selected) Color.White else Color.Black
                         )
                     ) {
-                        Text(text = age)
+                        Text(
+                            text = age,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -126,30 +154,37 @@ fun CreateProfileScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 24.dp),
+                    .padding(bottom = 32.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Button(
-                    onClick = { onAddProfile(name, selectedAge) },
+                    onClick = {
+                        onAddProfile(name.trim(), selectedAge)
+                    },
+                    enabled = canAddProfile,
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Black
+                        containerColor = Color.Black,
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFFE0E0E0),
+                        disabledContentColor = Color.Gray
                     ),
                     modifier = Modifier
                         .fillMaxWidth(0.75f)
-                        .height(52.dp)
+                        .height(54.dp)
                 ) {
                     Text(
                         text = "add profile",
-                        color = Color.White,
-                        fontSize = 20.sp
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
                         text = "▶",
-                        color = Color.White
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
