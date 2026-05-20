@@ -89,7 +89,7 @@ private fun selectedFgColor(darkMode: Boolean): Color {
 fun ManualOverrideScreen(
     modifier: Modifier = Modifier,
     setupConfig: SetupConfig = SetupConfig(),
-    profiles: List<Profile> = defaultManualProfiles(),
+    profiles: List<Profile> = emptyList(),
     activeProfileId: Int = profiles.firstOrNull()?.id ?: 0,
     onProfileSelected: (Profile) -> Unit = {},
     onProfileEdited: (Profile) -> Unit = {},
@@ -828,11 +828,7 @@ private fun ProfileRowCard(
     onClick: () -> Unit,
     onEditClick: () -> Unit
 ) {
-    val borderColor = if (profile.name.contains("Mum", ignoreCase = true)) {
-        Color(0xFFFF1919)
-    } else {
-        fgColor(darkMode)
-    }
+    val borderColor = fgColor(darkMode)
 
     Card(
         modifier = Modifier
@@ -1175,38 +1171,6 @@ private fun ManualMode.valuesText(setupConfig: SetupConfig): String {
         ManualMode.Far -> "L ${setupConfig.farLeft} / R ${setupConfig.farRight}"
         ManualMode.Off -> "L 0.00 / R 0.00"
     }
-}
-
-private fun defaultManualProfiles(): List<Profile> {
-    return listOf(
-        Profile(
-            id = 1,
-            name = "Jacob",
-            createdAt = "Today",
-            nearLeft = "+1.50",
-            nearRight = "+1.50",
-            farLeft = "-2.00",
-            farRight = "-2.00"
-        ),
-        Profile(
-            id = 2,
-            name = "Sasha",
-            createdAt = "Today",
-            nearLeft = "+1.50",
-            nearRight = "+1.50",
-            farLeft = "-2.00",
-            farRight = "-2.00"
-        ),
-        Profile(
-            id = 3,
-            name = "Mum",
-            createdAt = "Today",
-            nearLeft = "+1.50",
-            nearRight = "+1.50",
-            farLeft = "-2.00",
-            farRight = "-2.00"
-        )
-    )
 }
 
 private val manualBannerLogoSvg = """
