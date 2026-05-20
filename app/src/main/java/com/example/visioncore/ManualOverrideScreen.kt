@@ -91,20 +91,28 @@ fun ManualOverrideScreen(
     setupConfig: SetupConfig = SetupConfig(),
     profiles: List<Profile> = emptyList(),
     activeProfileId: Int = profiles.firstOrNull()?.id ?: 0,
+    startOnProfilesTab: Boolean = false,
     onProfileSelected: (Profile) -> Unit = {},
     onProfileEdited: (Profile) -> Unit = {},
+    onAddProfileClick: () -> Unit = {},
     onRecalibrateClick: () -> Unit = {},
     onDioptriesClick: () -> Unit = {},
     onBackClick: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(ManualTab.Now) }
+    var selectedTab by remember(startOnProfilesTab) {
+        mutableStateOf(
+            if (startOnProfilesTab) ManualTab.Profiles else ManualTab.Now
+        )
+    }
+
     var selectedMode by remember { mutableStateOf(ManualMode.Near) }
     var autoModeEnabled by remember { mutableStateOf(true) }
+
     var selectedProfileId by remember(activeProfileId) {
         mutableStateOf(activeProfileId)
     }
 
-    var deadBatteryMode by remember {
+    var deadBatteryMode by remember(setupConfig.deadBatteryMode) {
         mutableStateOf(setupConfig.deadBatteryMode.ifBlank { "Stay in last mode" })
     }
 
@@ -148,6 +156,7 @@ fun ManualOverrideScreen(
                             profiles = profiles,
                             activeProfileId = selectedProfileId,
                             darkMode = darkColorMode,
+                            onAddProfileClick = onAddProfileClick,
                             onProfileClick = { profile ->
                                 selectedProfileId = profile.id
                                 onProfileSelected(profile)
@@ -478,6 +487,7 @@ private fun ProfilesTab(
     profiles: List<Profile>,
     activeProfileId: Int,
     darkMode: Boolean,
+    onAddProfileClick: () -> Unit,
     onProfileClick: (Profile) -> Unit,
     onProfileEdit: (Profile) -> Unit
 ) {
@@ -597,7 +607,34 @@ private fun ProfilesTab(
                 color = fgColor(darkMode)
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Button(
+                onClick = onAddProfileClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(50.dp),
+                border = BorderStroke(2.dp, fgColor(darkMode)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = bgColor(darkMode),
+                    contentColor = fgColor(darkMode)
+                ),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Create new profile",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
         }
 
         DividerLine(darkMode = darkMode)
@@ -615,7 +652,7 @@ private fun ProfilesTab(
                 )
 
                 Text(
-                    text = "Create a profile in setup to see it here.",
+                    text = "Create a profile to see it here.",
                     fontSize = 13.sp,
                     color = fgColor(darkMode)
                 )

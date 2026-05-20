@@ -31,6 +31,14 @@ fun VisionCoreApp() {
     var currentScreen by rememberSaveable { mutableStateOf(Screen.Onboarding) }
     var setupConfig by remember { mutableStateOf(SetupConfig()) }
 
+    var createProfileReturnScreen by rememberSaveable {
+        mutableStateOf(Screen.Profiles)
+    }
+
+    var manualOverrideStartOnProfilesTab by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     val profiles = remember {
         mutableStateListOf<Profile>().apply {
             addAll(loadProfiles(context))
@@ -162,7 +170,7 @@ fun VisionCoreApp() {
             Screen.ProfileDetails,
             Screen.AllSet -> Screen.Dashboard
 
-            Screen.CreateProfile -> Screen.Profiles
+            Screen.CreateProfile -> createProfileReturnScreen
         }
     }
 
@@ -194,6 +202,7 @@ fun VisionCoreApp() {
                         calibrationCompleted = calibrationCompleted,
                         settingsCompleted = settingsCompleted,
                         onManualOverrideClick = {
+                            manualOverrideStartOnProfilesTab = false
                             currentScreen = Screen.ManualOverride
                         },
                         onProfilesClick = {
@@ -257,6 +266,12 @@ fun VisionCoreApp() {
                         setupConfig = setupConfig,
                         profiles = profiles,
                         activeProfileId = activeProfileId,
+                        startOnProfilesTab = manualOverrideStartOnProfilesTab,
+                        onAddProfileClick = {
+                            createProfileReturnScreen = Screen.ManualOverride
+                            manualOverrideStartOnProfilesTab = true
+                            currentScreen = Screen.CreateProfile
+                        },
                         onProfileSelected = { profile ->
                             activeProfileId = profile.id
                             selectedProfileId = profile.id
@@ -293,6 +308,8 @@ fun VisionCoreApp() {
                             saveProfilesNow()
                         },
                         onAddProfileClick = {
+                            createProfileReturnScreen = Screen.Profiles
+                            manualOverrideStartOnProfilesTab = false
                             currentScreen = Screen.CreateProfile
                         },
                         onEditProfileClick = { profile, newName ->
@@ -306,9 +323,11 @@ fun VisionCoreApp() {
                         },
                         onContinueClick = {
                             profileCompleted = profiles.isNotEmpty()
+
                             profiles.firstOrNull { it.id == activeProfileId }?.let { profile ->
                                 updateSetupConfigFromActiveProfile(profile)
                             }
+
                             saveProfilesNow()
                             goToDashboardOrAllSet()
                         }
@@ -320,7 +339,7 @@ fun VisionCoreApp() {
                 AppBackground(modifier = Modifier.padding(innerPadding)) {
                     CreateProfileScreen(
                         onBackClick = {
-                            currentScreen = Screen.Profiles
+                            currentScreen = createProfileReturnScreen
                         },
                         onAddProfile = { name, age ->
                             val finalName = name.trim().ifBlank { "Unnamed profile" }
@@ -341,7 +360,7 @@ fun VisionCoreApp() {
                             updateSetupConfigFromActiveProfile(newProfile)
                             saveProfilesNow()
 
-                            currentScreen = Screen.Profiles
+                            currentScreen = createProfileReturnScreen
                         }
                     )
                 }
@@ -406,6 +425,7 @@ fun VisionCoreApp() {
                             currentScreen = Screen.Dashboard
                         },
                         onContinueClick = {
+                            manualOverrideStartOnProfilesTab = false
                             currentScreen = Screen.ManualOverride
                         }
                     )
