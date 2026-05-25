@@ -103,6 +103,8 @@ fun ManualOverrideScreen(
     onDioptriesClick: () -> Unit = {},
     onDeadBatteryModeChanged: (String) -> Unit = {},
     onManualModeSelected: (ManualMode) -> Unit = {},
+    blinkRedEnabled: Boolean = true,
+    onBlinkRedChanged: (Boolean) -> Unit = {},
     onBackClick: () -> Unit
 ) {
     var selectedTab by remember(startOnProfilesTab, startOnDeviceTab) {
@@ -125,7 +127,7 @@ fun ManualOverrideScreen(
         mutableStateOf(setupConfig.deadBatteryMode.ifBlank { "Stay in last mode" })
     }
 
-    var blinkRedBeforeLowBattery by remember { mutableStateOf(true) }
+    var blinkRedBeforeLowBattery by remember(blinkRedEnabled) { mutableStateOf(blinkRedEnabled) }
     var darkColorMode by remember { mutableStateOf(false) }
 
     Surface(
@@ -196,6 +198,7 @@ fun ManualOverrideScreen(
                             blinkRedBeforeLowBattery = blinkRedBeforeLowBattery,
                             onBlinkRedBeforeLowBatteryChange = {
                                 blinkRedBeforeLowBattery = it
+                                onBlinkRedChanged(it)
                             },
                             darkColorMode = darkColorMode,
                             onDarkColorModeChange = { darkColorMode = it },

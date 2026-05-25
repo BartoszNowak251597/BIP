@@ -36,6 +36,7 @@ private const val KEY_CALIBRATION_COMPLETED = "calibration_completed"
 private const val KEY_SETTINGS_COMPLETED = "settings_completed"
 private const val KEY_DEAD_BATTERY_MODE = "dead_battery_mode"
 private const val KEY_AUTO_MODE_ENABLED = "auto_mode_enabled"
+private const val KEY_BLINK_RED = "blink_red_before_low_battery"
 private const val KEY_SETUP_DONE = "setup_done"
 
 @Composable
@@ -56,6 +57,10 @@ fun VisionCoreApp() {
 
     var autoModeEnabled by rememberSaveable {
         mutableStateOf(appSettings.autoModeEnabled)
+    }
+
+    var blinkRedBeforeLowBattery by rememberSaveable {
+        mutableStateOf(appSettings.blinkRedBeforeLowBattery)
     }
 
     var createProfileReturnScreen by rememberSaveable {
@@ -146,6 +151,7 @@ fun VisionCoreApp() {
                 }
                 bluetoothRepository.sendBytes(autoModeEnabled.toModeBytes())
                 bluetoothRepository.sendBytes(setupConfig.deadBatteryMode.toDeadBatteryBytes())
+                bluetoothRepository.sendBytes(blinkRedBeforeLowBattery.toBlinkRedBytes())
                 pendingDeadBatterySync = false
             }
             ConnectionState.Disconnected -> {
@@ -169,6 +175,13 @@ fun VisionCoreApp() {
     LaunchedEffect(autoModeEnabled) {
         if (bluetoothConnectionState == ConnectionState.Connected) {
             bluetoothRepository.sendBytes(autoModeEnabled.toModeBytes())
+        }
+    }
+
+    // Blink red setting changed while connected: resend
+    LaunchedEffect(blinkRedBeforeLowBattery) {
+        if (bluetoothConnectionState == ConnectionState.Connected) {
+            bluetoothRepository.sendBytes(blinkRedBeforeLowBattery.toBlinkRedBytes())
         }
     }
 
@@ -633,6 +646,11 @@ fun VisionCoreApp() {
                                 }
                             }
                         },
+                        blinkRedEnabled = blinkRedBeforeLowBattery,
+                        onBlinkRedChanged = { enabled ->
+                            blinkRedBeforeLowBattery = enabled
+                            savePref(context, KEY_BLINK_RED, enabled)
+                        },
                         onBackClick = {
                             currentScreen = Screen.Dashboard
                         }
@@ -1051,6 +1069,7 @@ private data class AppSettings(
     val settingsCompleted: Boolean,
     val deadBatteryMode: String,
     val autoModeEnabled: Boolean,
+    val blinkRedBeforeLowBattery: Boolean,
     val setupDone: Boolean
 )
 
@@ -1062,6 +1081,7 @@ private fun loadAppSettings(context: Context): AppSettings {
         settingsCompleted = prefs.getBoolean(KEY_SETTINGS_COMPLETED, false),
         deadBatteryMode = prefs.getString(KEY_DEAD_BATTERY_MODE, "Stay in last mode") ?: "Stay in last mode",
         autoModeEnabled = prefs.getBoolean(KEY_AUTO_MODE_ENABLED, true),
+        blinkRedBeforeLowBattery = prefs.getBoolean(KEY_BLINK_RED, true),
         setupDone = prefs.getBoolean(KEY_SETUP_DONE, false)
     )
 }

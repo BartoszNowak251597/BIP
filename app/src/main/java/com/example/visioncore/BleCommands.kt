@@ -14,3 +14,8 @@ fun String.toDeadBatteryBytes(): ByteArray {
     }
     return byteArrayOf(0x03, mode)
 }
+
+fun Boolean.toBlinkRedBytes(): ByteArray = byteArrayOf(
+    0x06,
+    if (this) 0x01 else 0x00
+)

@@ -91,6 +91,13 @@ class CommandCallbacks: public BLECharacteristicCallbacks {
         pStateCharacteristic->setValue(response, 2);
         pStateCharacteristic->notify();
 
+      } else if (cmd == 0x06 && value.length() == 2) {
+        // BLINK_RED: 0x01 = enabled, 0x00 = disabled
+        bool enabled = (uint8_t)value[1] == 0x01;
+        Serial.print("Blink red before 15%: ");
+        Serial.println(enabled ? "on" : "off");
+        // TODO: apply setting here
+
       } else if (cmd == 0x05 && value.length() == 2) {
         // SET_LENS_POSITION: 0x00 = near, 0x01 = far, 0x02 = off
         uint8_t pos = (uint8_t)value[1];
